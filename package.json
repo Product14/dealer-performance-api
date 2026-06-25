@@ -1,0 +1,7 @@
+{
+  "name": "metabase-dealer-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Live Dealer Performance data endpoint — Metabase /api/dataset proxy (no external deps; uses built-in fetch)"
+}
