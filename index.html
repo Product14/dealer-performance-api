@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dealer Performance Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+:root{
+  --hh:52px;--navy:#1e3557;--navy2:#243f69;--bg:#f1f5f9;--card:#FFFFFF;
+  --bdr:#e2e8f0;--bdr-strong:#cbd5e1;--txt:#1e293b;--muted:#64748b;--faint:#94a3b8;--r:8px;
+  --svc:#2563eb;--accent:#2563eb;--accent-soft:#eff6ff;
+  --red:#ef4444;--amber:#f59e0b;--green:#22c55e;--purple:#7c3aed;--cyan:#0891b2;--indigo:#6366f1;
+  --shadow:0 1px 3px rgba(15,23,42,.06);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--txt);font:13.5px/1.5 'Fira Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;}
+
+/* Header */
+.hdr{background:linear-gradient(135deg,#1e3557 0%,#243f69 100%);height:var(--hh);display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.1);box-shadow:0 2px 14px rgba(15,23,42,.20);position:sticky;top:0;z-index:100;}
+.hdr-brand{display:flex;align-items:center;gap:10px;}
+.hdr-brand .logo{width:28px;height:28px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;font-family:'Fira Code',monospace;letter-spacing:-.5px;box-shadow:0 3px 10px rgba(37,99,235,.5);}
+.hdr h1{color:#fff;font-size:15px;font-weight:700;letter-spacing:.01em;margin:0;background:linear-gradient(90deg,#fff,#cdd9ee);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.hdr .hpill{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);padding:3px 10px;border-radius:12px;font-size:11px;font-weight:500;}
+.hdr-spacer{flex:1;}
+.hdr-pl-badge{background:rgba(59,130,246,.25);color:#93c5fd;border:1px solid rgba(59,130,246,.4);padding:3px 12px;border-radius:12px;font-size:11.5px;font-weight:700;letter-spacing:.04em;}
+
+.wrap{max-width:1180px;margin:0 auto;padding:22px 24px 60px;animation:fadeUp .45s cubic-bezier(.2,.7,.3,1) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sub{color:var(--muted);font-size:13px;margin:0;}
+
+/* Toolbar */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:2px;}
+.topbar-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.btn{border:none;border-radius:6px;font-family:inherit;font-weight:600;font-size:12.5px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-ghost{background:#fff;border:1px solid var(--bdr-strong);color:var(--muted);}
+.btn-ghost:hover{border-color:#93c5fd;color:#1d4ed8;}
+.btn-primary{background:var(--svc);color:#fff;}
+.btn-primary:hover{background:#1d4ed8;}
+
+.dstatus{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:20px;background:#fff;border:1px solid var(--bdr);color:var(--muted);box-shadow:0 1px 4px rgba(15,23,42,.22);}
+.dstatus .d{width:8px;height:8px;border-radius:50%;background:var(--amber);}
+.dstatus.live .d{background:var(--green);}
+.dstatus.err .d{background:var(--red);}
+
+/* Filter bar */
+.filterbar{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;margin-top:16px;display:flex;flex-direction:column;gap:12px;}
+.frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.pillgroup{display:inline-flex;gap:6px;flex-wrap:wrap;}
+.pillgroup button{padding:5px 13px;border-radius:16px;border:1px solid var(--bdr);background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:var(--txt);transition:all .15s;white-space:nowrap;}
+.pillgroup button:hover{border-color:#93c5fd;color:#1d4ed8;}
+.pillgroup button.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.selectwrap{position:relative;}
+.selectwrap label{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--faint);font-weight:600;pointer-events:none;}
+select{appearance:none;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--txt);background:#fff;border:1px solid var(--bdr-strong);border-radius:6px;padding:8px 30px 8px 56px;cursor:pointer;}
+.selectwrap::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:11px;pointer-events:none;}
+select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px rgba(147,197,253,.3);}
+.label-i{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.scope{margin-left:auto;font-size:12px;color:var(--faint);font-weight:600;}
+
+/* KPI cards */
+.kbig{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px;}
+.ksm{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:12px;}
+.kcard{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;border-top:3px solid var(--svc);transition:transform .18s ease,box-shadow .18s ease;position:relative;overflow:hidden;}
+.kcard:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(15,23,42,.13);}
+.kbig .kcard{padding:18px;}
+.kbig .kcard:nth-child(2){border-top-color:var(--green);}
+.kbig .kcard:nth-child(3){border-top-color:var(--amber);}
+.ksm .kcard{border-top-width:2px;}
+.ksm .kcard:nth-child(1){border-top-color:var(--amber);}
+.ksm .kcard:nth-child(2){border-top-color:var(--cyan);}
+.ksm .kcard:nth-child(3){border-top-color:var(--indigo);}
+.ksm .kcard:nth-child(4){border-top-color:var(--green);}
+.ksm .kcard:nth-child(5){border-top-color:var(--purple);}
+.klabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.kbig .klabel{padding-right:38px;}
+.kval{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-top:8px;font-family:'Fira Code',monospace;}
+.kbig .kval{font-size:33px;}
+.ksm .kval{font-size:21px;}
+.ksub{font-size:11.5px;color:var(--muted);margin-top:6px;}
+.kbar{height:6px;border-radius:5px;background:#eef2f7;margin-top:12px;overflow:hidden;}
+.kbar i{display:block;height:100%;border-radius:5px;}
+.kicon{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+.kicon svg{width:17px;height:17px;}
+
+/* Panels */
+.panel{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px;margin-top:16px;transition:box-shadow .18s ease,transform .18s ease;}
+.panel:hover{box-shadow:0 12px 30px rgba(15,23,42,.13);transform:translateY(-3px);}
+.panel h3{font-size:11px;font-weight:700;margin:0 0 2px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.panel h3::before{content:'';width:4px;height:13px;border-radius:3px;background:var(--svc);display:inline-block;flex-shrink:0;}
+.phint{color:var(--faint);font-size:12px;margin:0 0 10px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;background:#f8fafc;border-bottom:2px solid var(--bdr);}
+td{padding:8px 10px;border-bottom:1px solid #f1f5f9;}
+tbody tr:nth-child(even) td{background:#fcfdfe;}
+tbody tr:hover td{background:#eff6ff;}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-family:'Fira Code',monospace;}
+.ratebar{height:6px;border-radius:4px;background:#eef2f7;overflow:hidden;width:90px;display:inline-block;vertical-align:middle;}
+.ratebar i{display:block;height:100%;background:var(--accent);border-radius:4px;}
+.ratecell{display:flex;align-items:center;justify-content:flex-end;gap:8px;}
+
+/* Tags */
+.tag{display:inline-block;padding:2px 9px;border-radius:8px;font-size:11px;font-weight:700;}
+.tag.committed{background:#dcfce7;color:#15803d;}
+.tag.warm{background:#fef9c3;color:#a16207;}
+.tag.human{background:#ede9fe;color:#6d28d9;}
+.tag.negative{background:#fee2e2;color:#dc2626;}
+.tag.neutral{background:#f1f5f9;color:#64748b;}
+
+/* AI summary */
+.aisum{display:flex;gap:16px;flex-wrap:wrap;}
+.aisum .body{flex:1;min-width:280px;}
+.aisum p{margin:0 0 10px;font-size:13.5px;line-height:1.6;}
+.aisum ul{margin:6px 0 0;padding-left:18px;}
+.aisum li{margin:5px 0;font-size:13px;}
+.aibadge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:#6d28d9;background:#ede9fe;padding:3px 10px;border-radius:20px;letter-spacing:.04em;}
+.recos{flex:0 0 230px;background:#f8fafc;border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;}
+.recos h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.recos ol{margin:0;padding-left:16px;}
+.recos li{font-size:12px;margin:6px 0;color:var(--txt);}
+
+/* Messages (dealer's own conversations) */
+.msgwrap{display:grid;grid-template-columns:300px 1fr;gap:14px;}
+.conv-list{max-height:460px;overflow:auto;padding-right:4px;}
+.conv-item{padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all .12s;}
+.conv-item:hover{border-color:#93c5fd;background:#f8fafc;}
+.conv-item.active{border-color:#2563eb;background:var(--accent-soft);box-shadow:0 0 0 2px rgba(37,99,235,.12);}
+.conv-item .ci-top{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+.conv-item .ci-name{font-weight:700;font-size:13px;}
+.conv-item .ci-meta{font-size:11px;color:var(--faint);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.conv-item .ci-id{font-family:'Fira Code',monospace;}
+.chatpane{border:1px solid var(--bdr);border-radius:8px;display:flex;flex-direction:column;min-height:300px;}
+.chat-head{padding:11px 14px;border-bottom:1px solid var(--bdr);background:#f8fafc;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.chat-head .ch-title{font-weight:700;font-size:13.5px;}
+.chat-head .ch-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.chat{flex:1;max-height:400px;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:14px;}
+.bub{max-width:78%;padding:9px 12px;border-radius:13px;font-size:12.5px;line-height:1.45;position:relative;}
+.bub .who{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.75;margin-bottom:3px;}
+.bub.user{align-self:flex-end;background:#2563eb;color:#fff;border-bottom-right-radius:4px;}
+.bub.bot{align-self:flex-start;background:#f1f5f9;color:#1e293b;border:1px solid var(--bdr);border-bottom-left-radius:4px;}
+.bub.bot .who{color:#2563eb;opacity:1;}
+
+/* Funnel */
+.fwrap{margin-top:6px;}
+
+svg{max-width:100%;height:auto;display:block;}
+
+/* Chart tooltip */
+.chart-tip{position:fixed;z-index:300;display:none;pointer-events:none;background:#0f1c33;color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:9px 11px;font-size:11.5px;box-shadow:0 10px 28px rgba(15,23,42,.4);min-width:130px;max-width:250px;}
+.chart-tip .ct-title{font-weight:700;font-size:11px;color:#cbd5e1;margin-bottom:6px;letter-spacing:.02em;font-family:'Fira Code',monospace;}
+.chart-tip .ct-row{display:flex;align-items:center;gap:7px;padding:1.5px 0;}
+.chart-tip .ct-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.chart-tip .ct-lbl{color:#cbd5e1;flex:1;white-space:nowrap;}
+.chart-tip .ct-val{font-family:'Fira Code',monospace;font-weight:700;color:#fff;margin-left:12px;}
+[data-tip]{cursor:crosshair;}
+
+@media(max-width:900px){.ksm{grid-template-columns:repeat(3,1fr);}.grid2{grid-template-columns:1fr;}.kbig{grid-template-columns:1fr;}.msgwrap{grid-template-columns:1fr;}}
+@media(max-width:640px){.hdr .hpill{display:none;}.kbig .kval{font-size:28px;}.ksm{grid-template-columns:repeat(2,1fr);}}
+
+/* ════ UI enhancement layer (v2) ════ */
+body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 60%),linear-gradient(180deg,#eef2f7,#f1f5f9 50%,#eaf0f7);}
+.hdr{height:58px;background:linear-gradient(120deg,#16243f 0%,#1e3557 45%,#2b4a7e 100%);}
+.hdr h1{font-size:16.5px;letter-spacing:.2px;}
+.hdr .hpill{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(4px);}
+.wrap{max-width:1200px;}
+.topbar .sub{font-size:13px;color:#5d6b82;}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);box-shadow:0 5px 14px rgba(37,99,235,.32);}
+.btn-ghost{background:rgba(255,255,255,.85);}
+.filterbar{border-radius:13px;border-color:#e6ecf3;}
+.pillgroup button{padding:6px 15px;border-radius:18px;font-size:12px;}
+.pillgroup button.active{background:linear-gradient(135deg,#1e3557,#33548a);border-color:#1e3557;box-shadow:0 5px 14px rgba(30,53,87,.28);}
+
+/* KPI cards */
+.kbig,.ksm{gap:16px;}
+.kbig .kcard,.ksm .kcard{border:1px solid #e7edf4;background:linear-gradient(180deg,#fff,#fbfdff);border-radius:14px;}
+.kbig .kcard{padding:20px 20px 18px;border-top-width:0;overflow:hidden;}
+.kbig .kcard::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--svc);}
+.kbig .kcard:nth-child(2)::after{background:var(--green);}
+.kbig .kcard:nth-child(3)::after{background:var(--amber);}
+.kbig .kval{font-size:37px;background:linear-gradient(135deg,#101d35,#2c4c81);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.kbig .klabel,.ksm .klabel{color:#6b7a90;}
+.kbig .kicon{width:40px;height:40px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(15,23,42,.05),0 4px 10px rgba(15,23,42,.06);}
+.ksm .kcard{padding:15px 16px;border-top-width:0;position:relative;overflow:hidden;}
+.ksm .kcard::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.ksm .kcard:nth-child(1)::after{background:var(--amber);}
+.ksm .kcard:nth-child(2)::after{background:var(--cyan);}
+.ksm .kcard:nth-child(3)::after{background:var(--indigo);}
+.ksm .kcard:nth-child(4)::after{background:var(--green);}
+.ksm .kcard:nth-child(5)::after{background:var(--purple);}
+.ksm .kval{font-size:23px;color:#15233c;}
+
+/* Panels */
+.panel{border-radius:14px;border-color:#e7edf4;box-shadow:0 2px 8px rgba(15,23,42,.05);}
+.panel h3{font-size:11px;color:#5b6b82;letter-spacing:.08em;}
+#t_vehicles th{background:#f4f7fb;}
+.bub.user{background:linear-gradient(135deg,#2563eb,#1d4ed8);}
+.conv-item.active{box-shadow:0 0 0 2px rgba(37,99,235,.16),0 6px 16px rgba(37,99,235,.12);}
+.kval{animation:kpiIn .5s cubic-bezier(.2,.7,.3,1) both;}
+@keyframes kpiIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-brand"><h1>Dealer Performance Dashboard</h1></div>
+  <span class="hpill" id="hdrScope">—</span>
+  <span class="hpill" id="hdrRange">—</span>
+  <div class="hdr-spacer"></div>
+</div>
+
+<div class="wrap">
+  <div class="topbar">
+    <p class="sub">Conversational-AI performance, leads &amp; appointments by dealership · <span id="subAsOf">data as of —</span></p>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="refreshBtn">⟳ Refresh</button>
+      <button class="btn btn-primary" id="exportBtn">⤓ Export CSV</button>
+    </div>
+  </div>
+
+  <div class="filterbar">
+    <div class="frow">
+      <div class="selectwrap" style="display:none"><label>Dealer</label><select id="dealerSel"></select></div>
+      <div class="pillgroup" id="dateGroup">
+        <button data-r="all" class="active">All</button><button data-r="today">Today</button><button data-r="week">This Week</button><button data-r="mtd">MTD</button><button data-r="14d">Last 14D</button>
+      </div>
+    </div>
+    <div class="frow">
+      <span class="label-i">Source</span>
+      <span style="font-size:12.5px;color:var(--muted);font-weight:600">Dealer Performance · VINI Conversational AI</span>
+      <span class="scope" id="scope">—</span>
+    </div>
+  </div>
+
+  <div class="kbig" id="kbig"></div>
+  <div class="ksm" id="ksm"></div>
+
+  <div class="panel">
+    <h3>Conversations &amp; Leads — Daily Trend</h3>
+    <p class="phint">Daily AI conversations (blue) and leads captured (amber).</p>
+    <div id="c_daily"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel"><h3>Conversion Funnel</h3><p class="phint">Chat conversations → leads captured (with conversion rate).</p><div id="c_funnel" class="fwrap"></div></div>
+    <div class="panel"><h3>Dealership Lead Sources · All Channels</h3><p class="phint">Lucki Mazda's <b>full lead pipeline</b> by source (all channels, incl. voice AI &amp; walk-ins) — the broader picture, <b>not</b> only the chatbot's captured leads above. From dealer_leads.leads.</p><div id="c_sources"></div></div>
+  </div>
+
+  <div class="panel">
+    <h3>Most Viewed Vehicles</h3>
+    <p class="phint">Unique chat viewers + VDP opens · from chatBrowsingHistory ⋈ inventory (names) + chatCompletions.</p>
+    <table id="t_vehicles"><thead><tr><th>Vehicle</th><th class="num">Viewers</th><th class="num">Opens</th><th class="num">Price</th></tr></thead><tbody></tbody></table>
+  </div>
+
+
+  <div class="panel">
+    <h3>My Conversations</h3>
+    <p class="phint">Your dealership's AI chat sessions. Select a conversation to read the full transcript.</p>
+    <div class="msgwrap">
+      <div class="conv-list" id="convList"></div>
+      <div class="chatpane">
+        <div class="chat-head"><div><div class="ch-title" id="chTitle">—</div><div class="ch-meta" id="chMeta"></div></div><span id="chTag"></span></div>
+        <div class="chat" id="chat"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const C={accent:'#2563eb',svc:'#2563eb',green:'#22c55e',amber:'#f59e0b',purple:'#7c3aed',cyan:'#0891b2',red:'#ef4444',indigo:'#6366f1',muted:'#64748b',faint:'#94a3b8',border:'#e2e8f0',navy:'#1e3557',blueLight:'#bfdbfe',blueMid:'#60a5fa',txt:'#1e293b'};
+const fmt=n=>{n=+n||0;return n>=1000?Math.round(n).toLocaleString():(Number.isInteger(n)?String(n):n.toFixed(1));};
+const SRC_COLORS={'Website':C.accent,'Google Search':C.green,'Facebook':C.indigo,'Instagram':C.purple,'Referral':C.amber,'Walk-in':C.cyan,'Other':C.faint};
+
+/* ============================================================
+   LIVE DATA LAYER  (Metabase signed-embedding proxy)
+   Deploy the serverless proxy in ./metabase-dealer-api (see its README),
+   then paste its endpoint below, e.g.
+     https://<your-project>.vercel.app/api/dealer
+   The dashboard renders the embedded snapshot instantly, then fetches
+   real data per dealer and re-renders. Status pill (top-right) shows
+   Live / Snapshot. On any failure the snapshot is kept.
+   The proxy returns, per dealer:
+     { dealer, asOf, kpi:{conversations,visitors,leads,leadRate,
+       testDrives,serviceAppts,aiResolution,handoffs},
+       daily:[[date,conv,leads]], sources:[[label,val]],
+       vehicles:[[name,views,inq,td]], funnel:[[label,val]],
+       conversations:[{id,visitor,channel,intent,outcome,cls,date,msgs}] }
+   ============================================================ */
+const DATA_URL = "/api/dealer-live"; // same-origin API (served by this same Vercel project)
+/* Which dealer this page shows = the team_id in the page's own URL, e.g.
+     dealer-performance.html?team_id=b60b1bb221   (Lucki Mazda of Woodbridge)
+   Each dealership just opens their own link. Falls back to Lucki if none given. */
+const TEAM_ID = new URLSearchParams(location.search).get('team_id') || new URLSearchParams(location.search).get('team') || 'b60b1bb221';
+
+let AS_OF="23 Jun 2026";
+let TODAY=new Date('2026-06-24T00:00:00Z');
+
+/* ---- embedded snapshot ---- */
+let DEALERS=[
+{
+  id:'lucki-mazda', name:'Lucki Mazda of Woodbridge',
+  daily:[['2026-06-10',31,6],['2026-06-11',28,5],['2026-06-12',35,7],['2026-06-13',22,4],['2026-06-14',18,3],['2026-06-15',40,8],['2026-06-16',38,8],['2026-06-17',33,7],['2026-06-18',36,7],['2026-06-19',42,9],['2026-06-20',29,5],['2026-06-21',24,4],['2026-06-22',39,8],['2026-06-23',37,11]],
+  base:{visitors:1240,testDrives:41,serviceAppts:33,handoffs:58,aiResolution:78.5},
+  sources:[['Website',210],['Google Search',132],['Facebook',60],['Instagram',35],['Referral',28],['Other',17]],
+  vehicles:[['2024 Mazda CX-5',312,48,14],['2024 Mazda CX-30',245,33,9],['2023 Mazda3',198,27,7],['2024 Mazda CX-90',164,22,5],['2023 Mazda CX-50',121,15,4],['2024 Mazda MX-5',88,9,2]],
+  summary:"Lucki Mazda of Woodbridge handled <b>452 AI conversations</b> this period and converted <b>20.4%</b> into captured leads — above the 19% network benchmark. The CX-5 and CX-30 drove the most showroom interest, together accounting for ~38% of all vehicle views. The AI resolved <b>78.5%</b> of conversations end-to-end, handing 58 to your team — most often around financing and trade-in questions. Test-drive bookings (41) outpaced service appointments (33), signalling strong sales-side intent.",
+  recos:["Add a financing FAQ — it's the top handoff trigger.","Promote CX-90 inventory: high views, low conversion.","Follow up on warm 'considering' leads within 24h."],
+  conversations:[
+    {id:'M-1042',visitor:'Sarah K.',channel:'Website',intent:'Vehicle Search',outcome:'Test Drive Booked',cls:'committed',date:'2026-06-23 14:22',msgs:[
+      {r:'user',t:'Hi, do you have the 2024 Mazda CX-5 in stock? Looking for an AWD trim.'},
+      {r:'bot',t:'We do! We currently have three 2024 CX-5 AWD units — a Select, a Preferred, and a Premium Plus. Were you leaning toward any particular trim or color?'},
+      {r:'user',t:'The Preferred in white if you have it.'},
+      {r:'bot',t:'Yes — a Rhodium White Metallic CX-5 Preferred AWD is on the lot. Would you like to book a test drive? I have openings tomorrow at 11am or 3pm.'},
+      {r:'user',t:'3pm tomorrow works.'},
+      {r:'bot',t:'Booked for 3:00pm tomorrow. I\'ll text a confirmation and have the vehicle pulled up front. Anything else?'}
+    ]},
+    {id:'M-1039',visitor:'James R.',channel:'Google Search',intent:'Financing',outcome:'Human Handoff',cls:'human',date:'2026-06-23 10:08',msgs:[
+      {r:'user',t:'What APR can I get on a CX-30 with a 690 credit score?'},
+      {r:'bot',t:'Great question. Rates depend on term length, down payment, and current promotions. I can connect you with our finance team for an exact quote — would that help?'},
+      {r:'user',t:'Yes please, I\'d rather talk to a person about numbers.'},
+      {r:'bot',t:'Understood — I\'m handing you to our finance specialist now. They\'ll have your CX-30 interest noted. One moment.'}
+    ]},
+    {id:'M-1031',visitor:'Priya S.',channel:'Facebook',intent:'Service Booking',outcome:'Service Appt Booked',cls:'committed',date:'2026-06-22 16:45',msgs:[
+      {r:'user',t:'I need an oil change and tire rotation for my 2021 Mazda3.'},
+      {r:'bot',t:'Happy to help. Our next service slots are Thursday 9am or Friday 1pm. Which works better?'},
+      {r:'user',t:'Friday 1pm.'},
+      {r:'bot',t:'Done — Friday 1:00pm for an oil change + tire rotation on your Mazda3. Estimated 45 min. You\'ll get a reminder the day before.'}
+    ]},
+    {id:'M-1024',visitor:'Mike T.',channel:'Website',intent:'Trade-In',outcome:'Lead Captured',cls:'warm',date:'2026-06-22 09:31',msgs:[
+      {r:'user',t:'What\'s my 2019 Honda Civic worth as a trade toward a CX-5?'},
+      {r:'bot',t:'I can get you a trade estimate. Could you share the mileage and overall condition?'},
+      {r:'user',t:'About 58,000 miles, very good condition.'},
+      {r:'bot',t:'Thanks! Based on that, a 2019 Civic in very good condition typically trades around $14,500–$16,000 here. I\'ve logged your interest — a specialist will confirm an exact figure. What\'s the best number to reach you?'},
+      {r:'user',t:'555-0142'}
+    ]},
+    {id:'M-1018',visitor:'Anonymous',channel:'Instagram',intent:'Pricing',outcome:'Not Interested',cls:'negative',date:'2026-06-21 19:12',msgs:[
+      {r:'user',t:'How much is the MX-5?'},
+      {r:'bot',t:'The 2024 MX-5 Miata starts at $28,985 MSRP for the Sport trim. Would you like to see available units or book a test drive?'},
+      {r:'user',t:'Just checking, too expensive for me right now.'},
+      {r:'bot',t:'Totally understand! If budget changes, we run seasonal offers — feel free to check back anytime.'}
+    ]}
+  ]
+},
+{
+  id:'dream-nissan', name:'Dream Nissan Lawrence',
+  daily:[['2026-06-10',24,5],['2026-06-11',21,4],['2026-06-12',28,6],['2026-06-13',17,3],['2026-06-14',14,2],['2026-06-15',31,6],['2026-06-16',29,6],['2026-06-17',26,5],['2026-06-18',27,5],['2026-06-19',33,7],['2026-06-20',22,4],['2026-06-21',18,3],['2026-06-22',30,6],['2026-06-23',27,9]],
+  base:{visitors:905,testDrives:29,serviceAppts:24,handoffs:49,aiResolution:74.2},
+  sources:[['Website',150],['Google Search',96],['Facebook',55],['Instagram',30],['Referral',24],['Other',12]],
+  vehicles:[['2024 Nissan Rogue',276,41,12],['2024 Nissan Altima',210,30,8],['2023 Nissan Sentra',175,24,6],['2024 Nissan Kicks',140,18,5],['2024 Nissan Pathfinder',112,14,3],['2023 Nissan Frontier',84,9,2]],
+  summary:"Dream Nissan Lawrence ran <b>347 AI conversations</b> with a <b>20.5%</b> lead-capture rate. The Rogue and Altima led demand, and SUV interest (Rogue + Pathfinder + Kicks) made up over half of all vehicle views. AI resolution sat at <b>74.2%</b> — slightly below network average — with 49 handoffs, skewed toward service scheduling complexity. Test drives (29) and service appointments (24) were closely matched.",
+  recos:["Expand service-scheduling automation to cut handoffs.","Bundle Rogue offers — it's your top demand driver.","Re-engage the 14 leads with no follow-up logged."],
+  conversations:[
+    {id:'N-880',visitor:'Carlos M.',channel:'Website',intent:'Vehicle Search',outcome:'Test Drive Booked',cls:'committed',date:'2026-06-23 13:05',msgs:[
+      {r:'user',t:'Is the 2024 Rogue available in the Platinum trim?'},
+      {r:'bot',t:'Yes — we have a 2024 Rogue Platinum AWD in Gun Metallic. Would you like to schedule a test drive?'},
+      {r:'user',t:'Sure, this Saturday morning?'},
+      {r:'bot',t:'Booked Saturday 10:30am. I\'ll send directions and a confirmation text. See you then!'}
+    ]},
+    {id:'N-874',visitor:'Anonymous',channel:'Google Search',intent:'Service Booking',outcome:'Human Handoff',cls:'human',date:'2026-06-23 08:50',msgs:[
+      {r:'user',t:'My Pathfinder has a recall notice, can you handle that?'},
+      {r:'bot',t:'Recall work is handled by our certified service team. Let me connect you to a service advisor who can verify the recall and book the repair.'},
+      {r:'user',t:'Ok thanks.'},
+      {r:'bot',t:'Connecting you now — I\'ve noted your Pathfinder and the recall. One moment.'}
+    ]},
+    {id:'N-869',visitor:'Dana W.',channel:'Facebook',intent:'Pricing',outcome:'Lead Captured',cls:'warm',date:'2026-06-22 17:20',msgs:[
+      {r:'user',t:'What are the lease options on a 2024 Altima?'},
+      {r:'bot',t:'We have a 36-month lease promotion running this month. I can have our team send exact terms based on your mileage needs — roughly how many miles a year do you drive?'},
+      {r:'user',t:'About 12,000.'},
+      {r:'bot',t:'Perfect — that fits the standard lease tier. I\'ve logged your Altima lease interest. What email should we send the offer to?'},
+      {r:'user',t:'dana.w@example.com'}
+    ]},
+    {id:'N-861',visitor:'Tom H.',channel:'Website',intent:'Service Booking',outcome:'Service Appt Booked',cls:'committed',date:'2026-06-21 11:14',msgs:[
+      {r:'user',t:'Need brake inspection for my Sentra.'},
+      {r:'bot',t:'I can book that. We have Wednesday 2pm or Thursday 9am open. Preference?'},
+      {r:'user',t:'Wednesday 2pm.'},
+      {r:'bot',t:'Booked — Wednesday 2:00pm brake inspection for your Sentra. Reminder will be sent.'}
+    ]}
+  ]
+},
+{
+  id:'apex-toyota', name:'Apex Toyota Downtown',
+  daily:[['2026-06-10',39,9],['2026-06-11',36,8],['2026-06-12',44,10],['2026-06-13',28,6],['2026-06-14',23,5],['2026-06-15',50,11],['2026-06-16',48,11],['2026-06-17',42,9],['2026-06-18',45,10],['2026-06-19',53,13],['2026-06-20',37,8],['2026-06-21',31,7],['2026-06-22',49,11],['2026-06-23',46,15]],
+  base:{visitors:1583,testDrives:57,serviceAppts:46,handoffs:62,aiResolution:81.0},
+  sources:[['Website',270],['Google Search',165],['Facebook',80],['Instagram',46],['Referral',32],['Other',18]],
+  vehicles:[['2024 Toyota RAV4',398,58,18],['2024 Toyota Camry',321,46,14],['2024 Toyota Corolla',260,36,10],['2024 Toyota Highlander',205,28,8],['2024 Toyota Tacoma',178,23,6],['2023 Toyota 4Runner',134,16,4]],
+  summary:"Apex Toyota Downtown is the top performer this period: <b>571 AI conversations</b>, a network-leading <b>23.3%</b> lead-capture rate, and the highest AI resolution at <b>81.0%</b>. The RAV4 and Camry dominated interest, together over 40% of vehicle views. Strong sales intent produced 57 test drives against 46 service appointments. With only 62 handoffs on the highest volume, automation efficiency is excellent.",
+  recos:["Replicate RAV4 merchandising across other models.","Capture more Tacoma demand — views are rising.","Maintain the low-handoff playbook as volume scales."],
+  conversations:[
+    {id:'T-2210',visitor:'Elena V.',channel:'Website',intent:'Vehicle Search',outcome:'Test Drive Booked',cls:'committed',date:'2026-06-23 15:40',msgs:[
+      {r:'user',t:'Looking for a hybrid RAV4, any in stock?'},
+      {r:'bot',t:'Yes — we have the 2024 RAV4 Hybrid XLE and Limited available. The XLE is in Blueprint and the Limited in Midnight Black. Want to take one for a test drive?'},
+      {r:'user',t:'The Limited, can I come by today?'},
+      {r:'bot',t:'Absolutely — I have 5pm open today. Shall I book it and have the Limited ready up front?'},
+      {r:'user',t:'Yes, 5pm.'},
+      {r:'bot',t:'Booked for 5:00pm today. Confirmation sent. See you soon!'}
+    ]},
+    {id:'T-2204',visitor:'Anonymous',channel:'Google Search',intent:'Trade-In',outcome:'Lead Captured',cls:'warm',date:'2026-06-23 12:02',msgs:[
+      {r:'user',t:'Trade value for a 2020 Camry toward a new Highlander?'},
+      {r:'bot',t:'I can start that estimate. Mileage and condition?'},
+      {r:'user',t:'42k miles, excellent.'},
+      {r:'bot',t:'A 2020 Camry in excellent condition with 42k typically trades around $19,000–$21,000. I\'ve logged your Highlander interest — best phone or email for the exact appraisal?'},
+      {r:'user',t:'elena.trade@example.com'}
+    ]},
+    {id:'T-2197',visitor:'Raj P.',channel:'Facebook',intent:'Financing',outcome:'Human Handoff',cls:'human',date:'2026-06-22 18:33',msgs:[
+      {r:'user',t:'Do you offer 0% APR on the Corolla?'},
+      {r:'bot',t:'We have promotional financing on select Corolla trims. For your exact eligibility, let me bring in our finance team — they can confirm current 0% offers. Okay?'},
+      {r:'user',t:'Yes go ahead.'},
+      {r:'bot',t:'Connecting you with finance now, Corolla interest noted.'}
+    ]},
+    {id:'T-2188',visitor:'Grace L.',channel:'Website',intent:'Service Booking',outcome:'Service Appt Booked',cls:'committed',date:'2026-06-21 10:27',msgs:[
+      {r:'user',t:'Need the 30k mile service for my Tacoma.'},
+      {r:'bot',t:'I can schedule the 30k service. Monday 8am or Tuesday 11am?'},
+      {r:'user',t:'Monday 8am.'},
+      {r:'bot',t:'Booked — Monday 8:00am, 30k-mile service for your Tacoma. Reminder will follow.'}
+    ]},
+    {id:'T-2179',visitor:'Anonymous',channel:'Instagram',intent:'Hours',outcome:'Info Provided',cls:'neutral',date:'2026-06-20 20:05',msgs:[
+      {r:'user',t:'What time do you close today?'},
+      {r:'bot',t:'We\'re open until 8:00pm today, and 6:00pm on Saturdays. Anything I can help you find before then?'},
+      {r:'user',t:'No thanks.'}
+    ]}
+  ]
+}
+];
+
+/* ---- aggregate "All Dealerships" ---- */
+function buildAll(){
+  const dmap={};
+  DEALERS.forEach(dl=>dl.daily.forEach(([dt,c,l])=>{dmap[dt]=dmap[dt]||[0,0];dmap[dt][0]+=c;dmap[dt][1]+=l;}));
+  const daily=Object.keys(dmap).sort().map(dt=>[dt,dmap[dt][0],dmap[dt][1]]);
+  const base={visitors:0,testDrives:0,serviceAppts:0,handoffs:0,aiResolution:0};
+  let convTot=0;
+  DEALERS.forEach(dl=>{const c=dl.daily.reduce((a,x)=>a+x[1],0);convTot+=c;base.visitors+=dl.base.visitors;base.testDrives+=dl.base.testDrives;base.serviceAppts+=dl.base.serviceAppts;base.handoffs+=dl.base.handoffs;base.aiResolution+=dl.base.aiResolution*c;});
+  base.aiResolution=convTot?+(base.aiResolution/convTot).toFixed(1):0;
+  const smap={};DEALERS.forEach(dl=>dl.sources.forEach(([k,v])=>smap[k]=(smap[k]||0)+v));
+  const sources=Object.entries(smap).sort((a,b)=>b[1]-a[1]);
+  const vehicles=DEALERS.flatMap(dl=>dl.vehicles).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const conversations=DEALERS.flatMap(dl=>dl.conversations.map(c=>({...c,dealer:dl.name}))).sort((a,b)=>a.date<b.date?1:-1);
+  return {id:'all',name:'All Dealerships',daily,base,sources,vehicles,conversations,
+    summary:"Across <b>"+DEALERS.length+" dealerships</b>, the VINI AI handled <b>"+convTot+" conversations</b> this period. Apex Toyota Downtown leads on both volume and lead-capture rate, while Dream Nissan shows the most room to improve AI resolution. SUVs and crossovers (RAV4, Rogue, CX-5) are the dominant demand category network-wide.",
+    recos:["Share Apex's low-handoff playbook with other stores.","Standardize SUV merchandising across dealers.","Set a network lead-capture target of 22%+."]};
+}
+
+/* ---- state ---- */
+let current=null, range='all', selectedConv=0;
+
+/* ---- date filtering ---- */
+function bounds(){
+  const end=new Date(TODAY);end.setUTCHours(23,59,59,999);const s=new Date(TODAY);let start;
+  switch(range){
+    case 'all':return null;
+    case 'today':start=new Date(s);break;
+    case 'week':{const wd=(s.getUTCDay()+6)%7;start=new Date(s);start.setUTCDate(s.getUTCDate()-wd);break;}
+    case 'mtd':start=new Date(Date.UTC(s.getUTCFullYear(),s.getUTCMonth(),1));break;
+    case '14d':start=new Date(s);start.setUTCDate(s.getUTCDate()-13);break;
+    default:return null;
+  }
+  return {start,end};
+}
+function slice(rows){const b=bounds();if(!b)return rows;return rows.filter(r=>{const d=new Date(r[0]+'T00:00:00Z');return d>=b.start&&d<=b.end;});}
+const dayLabel=iso=>new Date(iso+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+/* ---- metric computation (scales totals by the date-filtered share) ---- */
+function asPct(v){v=+v||0;return v>0&&v<=1?v*100:v;}
+function metrics(){
+  const d=slice(current.daily);
+  if(current._liveKpi){
+    const k=current._liveKpi;
+    // conversations + leads recompute from the date-sliced daily series
+    const conv=d.reduce((a,x)=>a+(+x[1]||0),0);
+    const leads=d.reduce((a,x)=>a+(+x[2]||0),0);
+    // test drives / service / completed recompute from the sliced per-day meetings series
+    const da=Array.isArray(current.dailyAppts)?slice(current.dailyAppts):[];
+    const testDrives=da.reduce((a,x)=>a+(+x[1]||0),0);
+    const serviceAppts=da.reduce((a,x)=>a+(+x[2]||0),0);
+    const completedAppts=da.reduce((a,x)=>a+(+x[3]||0),0);
+    const appts=testDrives+serviceAppts,closed=Math.round(appts*0.42);
+    return {d,conv,leads,visitors:null,testDrives,serviceAppts,completedAppts,handoffs:k.handoffs==null?null:+k.handoffs,appts,closed,ratio:1,live:true,
+      leadRate:conv?leads/conv*100:0,aiRes:k.aiResolution==null?null:asPct(k.aiResolution)};
+  }
+  const conv=d.reduce((a,x)=>a+(+x[1]||0),0);
+  const leads=d.reduce((a,x)=>a+(+x[2]||0),0);
+  const totalConv=current.daily.reduce((a,x)=>a+(+x[1]||0),0);
+  const ratio=totalConv?conv/totalConv:0;
+  const b=current.base;
+  const visitors=Math.round(b.visitors*ratio);
+  const testDrives=Math.round(b.testDrives*ratio);
+  const serviceAppts=Math.round(b.serviceAppts*ratio);
+  const handoffs=Math.round(b.handoffs*ratio);
+  const appts=testDrives+serviceAppts;
+  const closed=Math.round(appts*0.42);
+  return {d,conv,leads,visitors,testDrives,serviceAppts,handoffs,appts,closed,ratio,
+    leadRate:conv?leads/conv*100:0,aiRes:b.aiResolution};
+}
+
+/* ---- SVG helpers ---- */
+function svg(w,h){return `<svg viewBox="0 0 ${w} ${h}" width="100%" preserveAspectRatio="xMidYMid meet">`;}
+function lineChart(el,labels,series,h=230){
+  const w=640,pad=38,bottom=h-26,top=20;const max=Math.max(1,...series.flatMap(s=>s.data));
+  const x=i=>pad+i*((w-pad-10)/Math.max(1,labels.length-1));const y=v=>top+(bottom-top)*(1-v/max);
+  let defs='<defs>';series.forEach((se,si)=>{defs+=`<linearGradient id="${el}_g${si}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${se.color}" stop-opacity="0.24"/><stop offset="100%" stop-color="${se.color}" stop-opacity="0"/></linearGradient>`;});defs+='</defs>';
+  let s=svg(w,h)+defs;
+  for(let g=0;g<=4;g++){const gy=top+(bottom-top)*g/4;s+=`<line x1="${pad}" y1="${gy}" x2="${w-10}" y2="${gy}" stroke="${C.border}" stroke-dasharray="${g===4?'0':'2 3'}"/><text x="${pad-6}" y="${gy+3}" text-anchor="end" font-size="10" fill="${C.faint}">${Math.round(max*(1-g/4))}</text>`;}
+  series.forEach((se,si)=>{
+    if(labels.length>1){const pts=se.data.map((v,i)=>`${x(i)},${y(v)}`).join(' ');if(se.fill)s+=`<polygon points="${x(0)},${bottom} ${pts} ${x(se.data.length-1)},${bottom}" fill="url(#${el}_g${si})"/>`;s+=`<polyline points="${pts}" fill="none" stroke="${se.color}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;}
+    se.data.forEach((v,i)=>s+=`<circle cx="${x(i)}" cy="${y(v)}" r="${labels.length<=14?3.4:2.4}" fill="#fff" stroke="${se.color}" stroke-width="2"/>`);
+  });
+  labels.forEach((l,i)=>{if(labels.length<=14||i%2===0)s+=`<text x="${x(i)}" y="${h-8}" text-anchor="middle" font-size="9.5" fill="${C.faint}">${l}</text>`;});
+  const bandW=(w-pad-10)/Math.max(1,labels.length-1);
+  labels.forEach((l,i)=>{const x0=labels.length===1?pad:x(i)-bandW/2;const rw=labels.length===1?(w-pad-10):bandW;const payload={title:l,rows:series.map(se=>({label:se.name,color:se.color,value:fmt(se.data[i])}))};s+=`<rect x="${Math.max(0,x0)}" y="${top}" width="${rw}" height="${bottom-top}" fill="transparent" data-tip="${encodeURIComponent(JSON.stringify(payload))}"/>`;});
+  let lx=pad;s+=series.map(se=>{const t=`<g><rect x="${lx}" y="0" width="9" height="9" rx="2" fill="${se.color}"/><text x="${lx+13}" y="9" font-size="10.5" fill="${C.muted}">${se.name}</text></g>`;lx+=se.name.length*6.5+30;return t;}).join('');
+  s+='</svg>';document.getElementById(el).innerHTML=s;
+}
+function donut(el,rows){
+  const w=360,h=210,cx=104,cy=104,r=74,ir=47;const tot=rows.reduce((a,x)=>a+x[1],0)||1;let ang=-Math.PI/2;let s=svg(w,h);
+  rows.forEach(rw=>{const col=rw[2]||SRC_COLORS[rw[0]]||C.accent;const a0=ang,a1=ang+2*Math.PI*rw[1]/tot;ang=a1;const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);const xi0=cx+ir*Math.cos(a0),yi0=cy+ir*Math.sin(a0),xi1=cx+ir*Math.cos(a1),yi1=cy+ir*Math.sin(a1);const big=(a1-a0)>Math.PI?1:0;const pct=Math.round(rw[1]/tot*100);s+=`<path d="M ${x0} ${y0} A ${r} ${r} 0 ${big} 1 ${x1} ${y1} L ${xi1} ${yi1} A ${ir} ${ir} 0 ${big} 0 ${xi0} ${yi0} Z" fill="${col}" stroke="#fff" stroke-width="2" data-tip="${encodeURIComponent(JSON.stringify({title:rw[0],rows:[{label:'Conversations',color:col,value:fmt(rw[1])+' ('+pct+'%)'}]}))}"></path>`;});
+  s+=`<text x="${cx}" y="${cy-1}" text-anchor="middle" font-size="23" font-weight="800" fill="${C.navy}" font-family="'Fira Code',monospace">${fmt(tot)}</text><text x="${cx}" y="${cy+15}" text-anchor="middle" font-size="9" letter-spacing="1" fill="${C.faint}" font-weight="700">TOTAL</text>`;
+  s+='</svg>';
+  const legend=rows.map(rw=>{const col=rw[2]||SRC_COLORS[rw[0]]||C.accent;const pct=Math.round(rw[1]/tot*100);return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:${C.muted};margin:4px 0"><span style="width:10px;height:10px;border-radius:2px;background:${col};flex-shrink:0"></span><span style="flex:1">${rw[0]}</span><b style="font-family:'Fira Code',monospace;color:${C.navy}">${fmt(rw[1])}</b><span style="color:${C.faint};width:38px;text-align:right">${pct}%</span></div>`;}).join('');
+  document.getElementById(el).innerHTML=`<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div style="flex:0 0 200px">${s}</div><div style="flex:1;min-width:150px">${legend}</div></div>`;
+}
+function funnel(el,stages){
+  const w=640,rowH=58,h=stages.length*rowH+8;const max=stages[0][1]||1;const labelW=150,barMax=w-labelW-70;let s=svg(w,h);
+  stages.forEach((st,i)=>{
+    const y=10+i*rowH;const bw=Math.max(2,barMax*st[1]/max);const bx=labelW+(barMax-bw)/2;const col=st[2];
+    s+=`<text x="${labelW-10}" y="${y+rowH/2-2}" text-anchor="end" font-size="12" font-weight="600" fill="${C.txt}">${st[0]}</text>`;
+    s+=`<rect x="${bx}" y="${y}" width="${bw}" height="${rowH-18}" rx="5" fill="${col}" data-tip="${encodeURIComponent(JSON.stringify({title:st[0],rows:[{label:'Count',color:col,value:fmt(st[1])}]}))}"/>`;
+    s+=`<text x="${labelW+barMax/2}" y="${y+(rowH-18)/2+4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="'Fira Code',monospace">${fmt(st[1])}</text>`;
+    if(i>0){const conv=stages[i-1][1]?Math.round(st[1]/stages[i-1][1]*100):0;s+=`<text x="${w-8}" y="${y+rowH/2-2}" text-anchor="end" font-size="10.5" font-weight="700" fill="${conv>=40?C.green:conv>=20?C.amber:C.red}">${conv}%</text>`;}
+  });
+  s+='</svg>';document.getElementById(el).innerHTML=s;
+}
+
+/* ---- render ---- */
+const KICONS=[
+  {bg:'#eff6ff',fg:'#2563eb',p:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'},
+  {bg:'#ecfdf5',fg:'#16a34a',p:'<circle cx="9" cy="7" r="3"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><path d="M16 11l2 2 4-4"/>'},
+  {bg:'#fffbeb',fg:'#d97706',p:'<path d="M20 7 10 17l-5-5"/>'}
+];
+function kicon(i){const k=KICONS[i];if(!k)return '';return `<div class="kicon" style="background:${k.bg}"><svg viewBox="0 0 24 24" fill="none" stroke="${k.fg}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">${k.p}</svg></div>`;}
+function renderKpis(m){
+  const NA=v=>(v==null||Number.isNaN(v))?'N/A':fmt(v);
+  const pct=v=>(v==null||Number.isNaN(v))?'N/A':(+v).toFixed(1)+'%';
+  const big=[
+    ['Total Conversations',NA(m.conv),'AI chat sessions',C.svc,100],
+    ['Leads Captured',NA(m.leads),pct(m.leadRate)+' capture rate',C.green,m.leadRate==null?0:Math.min(100,Math.round(m.leadRate))],
+    ['Test Drives Booked',NA(m.testDrives),'AI-booked · Jun 11–24',C.amber,100]
+  ];
+  document.getElementById('kbig').innerHTML=big.map((b,i)=>`<div class="kcard">${kicon(i)}<div class="klabel">${b[0]}</div><div class="kval">${b[1]}</div><div class="ksub">${b[2]}</div><div class="kbar"><i style="width:${b[4]}%;background:${b[3]}"></i></div></div>`).join('');
+  const small=[
+    ['Lead Capture Rate',pct(m.leadRate)],
+    ['Service Appointments',NA(m.serviceAppts)],
+    ['Completed Appointments',NA(m.completedAppts)],
+    ['AI Resolution Rate',pct(m.aiRes)],
+    ['Human Handoffs',NA(m.handoffs)]
+  ];
+  document.getElementById('ksm').innerHTML=small.map(k=>`<div class="kcard"><div class="klabel">${k[0]}</div><div class="kval">${k[1]}</div></div>`).join('');
+}
+const EMPTY_NOTE='<span style="color:var(--faint)">Not available at chatbot scope — needs new instrumentation</span>';
+function renderVehicles(){
+  const tb=document.querySelector('#t_vehicles tbody');
+  if(!current.vehicles.length){tb.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:18px">${EMPTY_NOTE}</td></tr>`;return;}
+  const max=Math.max(1,...current.vehicles.map(v=>+v[1]||0));
+  tb.innerHTML=current.vehicles.map(v=>`<tr><td style="font-weight:600">${v[0]}</td><td class="num"><div class="ratecell"><span class="ratebar"><i style="width:${Math.round((+v[1]||0)/max*100)}%"></i></span>${fmt(v[1])}</div></td><td class="num">${v[2]!=null?fmt(v[2]):'—'}</td><td class="num">${v[3]!=null&&v[3]!==''?v[3]:'—'}</td></tr>`).join('');
+}
+function renderSummary(){
+  const el=document.getElementById('aisum');if(!el)return;
+  el.innerHTML=`<div class="body"><p>${current.summary}</p></div><div class="recos"><h4>Recommended Actions</h4><ol>${current.recos.map(r=>`<li>${r}</li>`).join('')}</ol></div>`;
+}
+function renderConvList(){
+  if(!current.conversations.length){
+    document.getElementById('convList').innerHTML=`<div style="padding:14px 6px;font-size:12.5px">${EMPTY_NOTE}<div style="color:var(--faint);margin-top:6px">Per-shopper transcripts aren't part of dashboard 1735.</div></div>`;
+    document.getElementById('chTitle').textContent='—';document.getElementById('chMeta').textContent='';document.getElementById('chTag').innerHTML='';document.getElementById('chat').innerHTML='';
+    return;
+  }
+  const showDealer=current.id==='all';
+  document.getElementById('convList').innerHTML=current.conversations.map((c,i)=>`<div class="conv-item ${i===selectedConv?'active':''}" data-i="${i}"><div class="ci-top"><span class="ci-name">${c.visitor}</span><span class="tag ${c.cls}">${c.outcome}</span></div><div class="ci-meta"><span class="ci-id">${c.id}</span><span>· ${c.channel}</span><span>· ${c.intent}</span></div><div class="ci-meta">${showDealer?'<span>'+c.dealer+'</span> · ':''}<span>${c.date}</span></div></div>`).join('');
+  document.querySelectorAll('#convList .conv-item').forEach(el=>el.onclick=()=>{selectedConv=+el.dataset.i;renderConvList();renderChat();});
+}
+function renderChat(){
+  const c=current.conversations[selectedConv];if(!c){document.getElementById('chat').innerHTML='';return;}
+  document.getElementById('chTitle').textContent=c.visitor+' · '+c.id;
+  document.getElementById('chMeta').textContent=`${c.channel} · ${c.intent} · ${c.date}`+(current.id==='all'?' · '+c.dealer:'');
+  document.getElementById('chTag').innerHTML=`<span class="tag ${c.cls}">${c.outcome}</span>`;
+  document.getElementById('chat').innerHTML=c.msgs.map(m=>`<div class="bub ${m.r}"><div class="who">${m.r==='user'?'Shopper':'VINI AI'}</div>${m.t}</div>`).join('');
+}
+function renderHeader(m){
+  document.getElementById('subAsOf').textContent='data as of '+AS_OF;
+  document.getElementById('hdrScope').textContent=current.name;
+  if(m.d.length){document.getElementById('hdrRange').textContent=dayLabel(m.d[0][0])+' – '+dayLabel(m.d[m.d.length-1][0])+', '+new Date(TODAY).getUTCFullYear();}
+  document.getElementById('scope').textContent=`${m.conv||current.conversations.length} conversations · ${m.d.length} active day${m.d.length===1?'':'s'}`;
+}
+function renderAll(){
+  const m=metrics();
+  renderHeader(m);renderKpis(m);
+  lineChart('c_daily',m.d.map(x=>dayLabel(x[0])),[{name:'Conversations',color:C.accent,data:m.d.map(x=>x[1]),fill:true},{name:'Leads',color:C.amber,data:m.d.map(x=>x[2])}]);
+  const fstages=m.live
+    ?[['Conversations',m.conv,C.accent],['Leads Captured',m.leads,C.cyan]]
+    :[['Unique Visitors',m.visitors,C.indigo],['Conversations',m.conv,C.accent],['Leads Captured',m.leads,C.cyan],['Appointments Booked',m.appts,C.amber],['Sales Closed',m.closed,C.green]];
+  funnel('c_funnel',fstages);
+  if(current.sources.length)donut('c_sources',current.sources.map(s=>{const r=Math.round(s[1]*m.ratio);return [s[0],r,s[2]];}));
+  else document.getElementById('c_sources').innerHTML=`<p style="padding:14px 4px;font-size:12.5px">${EMPTY_NOTE}</p>`;
+  renderVehicles();renderSummary();renderConvList();renderChat();
+}
+
+/* ---- live data (Metabase signed-embedding proxy) ---- */
+function setStatus(state,txt){const el=document.getElementById('dstatus');if(!el)return;el.className='dstatus'+(state?' '+state:'');const t=document.getElementById('dstatusTxt');if(t)t.textContent=txt;}
+function applyLive(j){
+  if(!j||typeof j!=='object')return false;
+  current._liveKpi=(j.kpi&&Object.keys(j.kpi).length)?j.kpi:null;
+  current._liveFunnel=Array.isArray(j.funnel)?j.funnel:null;
+  if(Array.isArray(j.daily)&&j.daily.length)current.daily=j.daily;
+  if(Array.isArray(j.dailyAppts)&&j.dailyAppts.length)current.dailyAppts=j.dailyAppts;
+  if(Array.isArray(j.sources)&&j.sources.length)current.sources=j.sources.map(s=>[s[0],+s[1]||0,s[2]]);
+  if(Array.isArray(j.vehicles)&&j.vehicles.length)current.vehicles=j.vehicles.map(v=>[v[0],+v[1]||0,+v[2]||0,v[3]]);
+  if(Array.isArray(j.conversations)&&j.conversations.length)current.conversations=j.conversations;
+  if(j.summary)current.summary=j.summary;
+  if(j.teamName)current.name=j.teamName;
+  if(j.asOf)AS_OF=j.asOf;
+  selectedConv=0;
+  return !!(current._liveKpi||(current.daily&&current.daily.length));
+}
+async function loadDealerLive(){
+  if(!DATA_URL)return; // snapshot mode — baked data already shown
+  try{
+    const res=await fetch(DATA_URL+'?team='+encodeURIComponent(TEAM_ID),{headers:{'Accept':'application/json'}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    applyLive(j);renderAll();
+    setStatus('live','Live · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){console.warn('Live fetch failed, keeping snapshot:',e);}
+}
+async function loadDealerList(){
+  if(!DATA_URL)return;
+  try{
+    const res=await fetch(DATA_URL+'?list=1',{headers:{'Accept':'application/json'}});
+    if(!res.ok)return;
+    const j=await res.json();
+    if(!Array.isArray(j.dealers)||!j.dealers.length)return;
+    const skel=n=>({id:n,name:n,daily:[],base:{visitors:0,testDrives:0,serviceAppts:0,handoffs:0,aiResolution:0},sources:[],vehicles:[],conversations:[],summary:'',recos:[]});
+    window._OPTS=[buildAll(),...j.dealers.map(skel)];
+    document.getElementById('dealerSel').innerHTML=window._OPTS.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+    document.getElementById('dealerSel').value=current.id;
+  }catch(e){}
+}
+
+/* ---- dealer selector ---- */
+function pickDealer(id){
+  const src=(window._OPTS||[]).find(d=>d.id===id)||window._OPTS[0];
+  current=JSON.parse(JSON.stringify(src));
+  current._liveKpi=null;current._liveFunnel=null;selectedConv=0;
+}
+function initDealers(selId){
+  const opts=[buildAll(),...DEALERS];
+  window._OPTS=opts;
+  document.getElementById('dealerSel').innerHTML=opts.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  pickDealer(opts.find(d=>d.id===selId)?selId:'all');
+  document.getElementById('dealerSel').value=current.id;
+}
+
+/* ---- export ---- */
+function exportCsv(){
+  const m=metrics();
+  const f=v=>(v==null||Number.isNaN(v))?'N/A':v;
+  const rows=[['Metric','Value'],['Dealer',current.name],['Date range',range],['Data as of',AS_OF],
+    ['Total Conversations',f(m.conv)],['Leads Captured',f(m.leads)],['Lead Capture Rate',m.leadRate==null?'N/A':m.leadRate.toFixed(1)+'%'],
+    ['Test Drives Booked',f(m.testDrives)],['Service Appointments',f(m.serviceAppts)],['Completed Appointments',f(m.completedAppts)],
+    ['AI Resolution Rate',m.aiRes==null?'N/A':m.aiRes+'%'],['Human Handoffs',f(m.handoffs)]];
+  const csv=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=(current.id||'dealer')+'-performance.csv';document.body.appendChild(a);a.click();a.remove();
+}
+
+/* ---- controls ---- */
+document.getElementById('dealerSel').addEventListener('change',e=>{pickDealer(e.target.value);renderAll();loadDealerLive();});
+document.querySelectorAll('#dateGroup button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#dateGroup button').forEach(x=>x.classList.remove('active'));b.classList.add('active');range=b.dataset.r;renderAll();});
+document.getElementById('refreshBtn').onclick=()=>{
+  const btn=document.getElementById('refreshBtn');if(btn.dataset.busy)return;
+  const orig=btn.innerHTML;btn.dataset.busy='1';btn.style.opacity='.7';btn.innerHTML='⟳ Refreshing…';
+  setTimeout(()=>{
+    if(DATA_URL){loadDealerLive();}else{useRealSnapshot();}
+    btn.innerHTML='✓ Updated';
+    setTimeout(()=>{btn.innerHTML=orig;btn.style.opacity='';delete btn.dataset.busy;},1200);
+  },350);
+};
+document.getElementById('exportBtn').onclick=exportCsv;
+
+/* ---- tooltips ---- */
+const _tip=document.createElement('div');_tip.className='chart-tip';document.body.appendChild(_tip);
+function _tipHtml(p){return `<div class="ct-title">${p.title}</div>`+p.rows.map(r=>`<div class="ct-row"><span class="ct-dot" style="background:${r.color}"></span><span class="ct-lbl">${r.label}</span><span class="ct-val">${r.value}</span></div>`).join('');}
+function _showTip(p,x,y){_tip.innerHTML=_tipHtml(p);_tip.style.display='block';const pd=14,r=_tip.getBoundingClientRect();let lf=x+pd,tp=y+pd;if(lf+r.width>window.innerWidth-8)lf=x-r.width-pd;if(tp+r.height>window.innerHeight-8)tp=y-r.height-pd;_tip.style.left=Math.max(8,lf)+'px';_tip.style.top=Math.max(8,tp)+'px';}
+function _hideTip(){_tip.style.display='none';}
+['c_daily','c_funnel','c_sources'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('mousemove',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(!t){_hideTip();return;}try{_showTip(JSON.parse(decodeURIComponent(t.getAttribute('data-tip'))),e.clientX,e.clientY);}catch(_){_hideTip();}});el.addEventListener('mouseleave',_hideTip);});
+
+/* ---- REAL data baked from Metabase dashboard 1735 (pulled 24 Jun 2026, network-wide) ---- */
+const REAL={
+  asOf:"2026-06-24",
+  kpi:{conversations:66,leads:7,leadRate:10.6,testDrives:4,serviceAppts:4,completedAppts:0,aiResolution:100,handoffs:0},
+  daily:[["2026-06-11",1,0],["2026-06-12",7,3],["2026-06-15",5,0],["2026-06-16",1,0],["2026-06-17",1,0],["2026-06-18",13,1],["2026-06-19",21,3],["2026-06-22",8,0],["2026-06-23",6,0],["2026-06-24",3,0]],
+  dailyAppts:[["2026-06-04",0,2,0],["2026-06-12",2,0,0],["2026-06-19",2,1,0],["2026-06-22",0,1,0]],
+  funnel:[['Conversations',66],['Leads Captured',7]],
+  sources:[["Conversational AI",259,"#2563eb"],["Personal Networking",20,"#22c55e"],["Campaign",20,"#6366f1"],["Previous Customer",14,"#f59e0b"],["Referral",11,"#7c3aed"],["spyne",8,"#0891b2"],["Drive By",8,"#ef4444"],["Inbound",6,"#60a5fa"],["VINCUE-Value Your Trade",4,"#94a3b8"],["Apollo Websites - Contact Dealer",3,"#14b8a6"]],vehicles:[["2022 Toyota Highlander XLE",6,10,"$39,393"],["2018 Jeep Compass Trailhawk",5,4,"$18,926"],["2017 GMC Yukon XL SLT",5,12,"$24,480"],["2026 Mazda CX-30 2.5 S Select Sport",3,0,""],["2016 INFINITI Q50 3.0t Premium",3,4,"$14,827"],["2026 Mazda CX-5 2.5 S Preferred",3,0,"$37,460"],["2018 Toyota Tacoma TRD Off-Road",2,3,"$32,118"],["2026 Mazda CX-90 Select",2,1,"$40,140"],["2024 Chevrolet Tahoe LT",2,3,"$50,749"],["2023 Nissan Versa S",2,0,""]],conversations:[{"id":"6A3BDF17","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Engaged","cls":"neutral","date":"2026-06-24 13:43","msgs":[{"r":"user","t":"Does this vehicle have captain chairs?"},{"r":"bot","t":"I don't have a detailed feature list for the 2026 Mazda CX-90 Preferred in my system, but it's a new SUV. Would you like to come in for a closer look?"},{"r":"user","t":"👁 Opened VDP — 2026 Mazda CX-90 Preferred ($45160)"},{"r":"bot","t":"The 2026 Mazda CX-90 Preferred is available at $45,160. Want to take it for a spin?"},{"r":"user","t":"Stock: N00008"},{"r":"bot","t":"I see you're interested in the 2026 Mazda CX-90 Preferred. Would you like to schedule a test drive?"},{"r":"user","t":"Does this have 7 seats or 8 seats?"},{"r":"bot","t":"I don't have the seating details for the 2026 Mazda CX-90 Preferred right now, but you're welcome to see it in person at the dealership."},{"r":"user","t":"I need to know the details first"},{"r":"bot","t":"The 2026 Mazda CX-90 Preferred is a new SUV with all-wheel drive and a MACHINE GRAY METALLIC color. I don't have the seating capacity here, but you can check it out in person."},{"r":"bot","t":"Thanks for stopping by — happy to answer any questions about this vehicle or set up a test drive!"},{"r":"bot","t":"Thanks for checking out our inventory! Ready to learn more about this vehicle or take it for a spin?"}]},{"id":"6A3B7D42","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Callback Requested","cls":"warm","date":"2026-06-24 06:46","msgs":[{"r":"user","t":"Hi"},{"r":"bot","t":"Hey there! How can I help you today?"},{"r":"user","t":"can you list down the best cars in your inventory"},{"r":"bot","t":"Here are some of our top vehicles: a 2018 Toyota Tacoma TRD Off-Road for $32,118, a 2017 GMC Yukon XL SLT for $24,480, and a 2023 INFINITI QX60 LUXE for $41,552. Want to set up a test drive?"},{"r":"user","t":"👁 Opened VDP — 2023 INFINITI QX60 LUXE ($41552)"},{"r":"bot","t":"Great choice with the 2023 INFINITI QX60 LUXE, priced at $41,552 with just 26,475 miles. Want to take it for a spin?"},{"r":"user","t":"More details, please"},{"r":"bot","t":"The 2023 INFINITI QX60 LUXE features all-wheel drive, a V6 engine, and a luxurious Graphite Shadow exterior with a Graphite interior. It also has a suite of modern features such as ProPilot Assist, Intelligent Cruise Control, and a panoramic sunroof. Would you like to schedule a test drive to experience it in person?"},{"r":"user","t":"Show me similar SUVs"},{"r":"bot","t":"Check out these similar SUVs: a 2024 Chevrolet Tahoe LT for $50,749, a 2018 Jeep Compass Trailhawk for $18,926, and a 2018 GMC Yukon Denali for $27,388. Interested in any of these?"},{"r":"user","t":"would like to connect to the store"},{"r":"bot","t":"I'd be happy to have someone from our team call you. What's the best number to reach you, and who should we ask for?"}]},{"id":"6A3B3EE3","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Engaged","cls":"neutral","date":"2026-06-24 02:20","msgs":[{"r":"user","t":"Show me what's in stock"},{"r":"bot","t":"We have 120 vehicles in stock. Would you like to see more Mazdas, SUVs, or another specific type?"},{"r":"user","t":"mazda 3"},{"r":"bot","t":"We have several Mazda3 Sedans in stock. The models include the 2026 2.5 S Preferred at $28,480, the 2026 2.5 S Carbon Edition at $31,285, and the 2026 2.5 S Select Sport at $27,340. Would you like to schedule a test drive for one?"},{"r":"user","t":"👁 Opened VDP — 2026 Mazda3 Sedan 2.5 S Select Sport ($27340)"},{"r":"bot","t":"Nice choice with the 2026 Mazda Mazda3 Sedan 2.5 S Select Sport for $27,340! Want to take it for a spin?"},{"r":"user","t":"👁 Opened VDP — 2024 Mazda3 Sedan 2.5 S Carbon Edition ($26998)"},{"r":"bot","t":"The 2024 Mazda Mazda3 Sedan 2.5 S Carbon Edition looks great at $26,998 with just over 23,000 miles. Want to schedule a test drive?"}]},{"id":"6A3AD026","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Engaged","cls":"neutral","date":"2026-06-23 18:27","msgs":[{"r":"user","t":"Talk to sales"},{"r":"bot","t":"Friendly sales support here! How can I assist you today with your vehicle needs?"},{"r":"user","t":"YOU GUYS HIRING?"},{"r":"bot","t":"I'm focused on vehicle sales and appointments, but you can visit our website or contact the dealership directly for info on job opportunities."},{"r":"user","t":"SHIT"},{"r":"bot","t":"I’m here if you need any help with vehicles or test drives. Let me know what I can do for you!"}]},{"id":"6A3AC277","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Engaged","cls":"neutral","date":"2026-06-23 17:29","msgs":[{"r":"user","t":"Hey"},{"r":"bot","t":"Hi there! How can I assist you today with your vehicle needs?"},{"r":"user","t":"Get vehicle history"},{"r":"bot","t":"To retrieve the vehicle history, could you let me know which specific vehicle you're interested in?"},{"r":"user","t":"Used 2017 Volvo XC90 Momentum"},{"r":"bot","t":"The 2017 Volvo XC90 Momentum has had 2 previous owners and 6 service history records. It's a personal vehicle last owned in New Jersey with no accidents reported. Would you like to schedule a test drive?"},{"r":"user","t":"Tell me more details"},{"r":"bot","t":"This Volvo XC90 Momentum features a 4-cylinder engine, all-wheel drive, and an automatic transmission. It's been well-maintained with no reported accidents. Interested in taking it for a test drive?"},{"r":"user","t":"More features"},{"r":"bot","t":"The Volvo XC90 includes a panoramic sunroof, navigation system, Bluetooth, and a suite of safety features like collision mitigation and lane-keeping assist. Ready for a spin?"},{"r":"user","t":"View safety details"},{"r":"bot","t":"The 2017 Volvo XC90 Momentum is equipped with airbags, collision mitigation, and rearview camera, offering excellent safety. How about setting up a test drive to see it in action?"},{"r":"user","t":"hey"},{"r":"bot","t":"Hello again! How can I assist you further with your car needs today?"},{"r":"user","t":"Browse inventory"},{"r":"bot","t":"What type of vehicle are you looking to explore? Let me know the make, model, or type you're interested in!"},{"r":"user","t":"SUVs"},{"r":"bot","t":"Here are a few SUVs you might like: a 2024 Chevrolet Tahoe LT for $50,749, a 2018 Jeep Compass Trailhawk for $18,926, and a 2018 GMC Yukon Denali for $27,388. Interested in one for a test drive?"},{"r":"user","t":"GMC Yukon"},{"r":"bot","t":"The 2018 GMC Yukon Denali, priced at $27,388, comes with a powerful 6.2L V8 engine and luxurious features. Ready to check it out with a test drive?"},{"r":"user","t":"View more details"},{"r":"bot","t":"This GMC Yukon Denali features a rear-view camera, heated seats, and a premium Bose sound system. It's in excellent condition and ready for you. Want to take it for a spin?"},{"r":"user","t":"More features"},{"r":"bot","t":"The Yukon Denali includes tri-zone climate control, 10-speed automatic transmission, and magnetic ride control. Shall we set up a test drive?"},{"r":"user","t":"carfax"},{"r":"bot","t":"This 2018 GMC Yukon Denali has a clean history with no accidents and two previous owners. It's been well-maintained with 18 service records. Interested in seeing it in person?"},{"r":"user","t":"can you send a video of this car on my cell?"},{"r":"bot","t":"I can't send a video directly, but you can view the details and photos on our website. Would you like the link to the GMC Yukon Denali page?"},{"r":"user","t":"Yes, send link"},{"r":"bot","t":"Here's the link to view the 2018 GMC Yukon Denali: [View Details](https://www.luckimazda.com/viewdetails/used/1gks1ckjxjr243135/2018-gmc-yukon-sport-utility). Ready to set up a test drive?"},{"r":"user","t":"👁 Opened VDP — 2018 GMC Yukon Denali ($27388)"},{"r":"bot","t":"You're checking out the 2018 GMC Yukon Denali, priced at $27,388 with 114,954 miles. Ready to take it for a spin?"}]},{"id":"6A3A656C","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Engaged","cls":"neutral","date":"2026-06-23 10:52","msgs":[{"r":"user","t":"hi"},{"r":"bot","t":"Hi there! How can I assist you with your vehicle needs today?"}]},{"id":"6A3A62C1","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Test Drive Booked","cls":"committed","date":"2026-06-23 10:41","msgs":[{"r":"user","t":"hi"},{"r":"bot","t":"Hello there! How can I assist you today?"},{"r":"user","t":"Find a car"},{"r":"bot","t":"Great! Do you have a specific make or model in mind, or are you open to recommendations?"},{"r":"user","t":"Show me SUVs"},{"r":"bot","t":"Here are some SUVs you might like: a 2017 GMC Yukon XL SLT in Summit White for $24,480, a 2023 INFINITI QX60 LUXE in Graphite Shadow for $41,552, and a 2017 Lexus RX 350 F Sport in Nightfall Mica for $28,113. Want to book a test drive?"},{"r":"user","t":"i want to see toyota"},{"r":"bot","t":"Here are some Toyotas for you: a 2018 Toyota Tacoma TRD Off-Road in Blazing Blue Pearl for $32,118, a 2024 Toyota Tundra SR5 in Ice Cap for $56,339, and a 2023 Toyota Tacoma SR V6 in Celestial Silver Metallic for $40,999. Would you like to test drive any of these?"},{"r":"user","t":"i want to make reservation for previous one"},{"r":"bot","t":"Just to confirm, would you like to reserve a test drive for the 2017 Lexus RX 350 F Sport in Nightfall Mica?"},{"r":"user","t":"No, a different one"},{"r":"bot","t":"Of course! Which one would you like to reserve a test drive for?"},{"r":"user","t":"2023 Tacoma"},{"r":"bot","t":"Great choice! Let's set up a test drive for the 2023 Toyota Tacoma SR V6. What date and time work best for you?"},{"r":"user","t":"Next week"},{"r":"bot","t":"Here are the available slots for your test drive at Lucki Mazda of Woodbridge on June 30th. Please select a time that works best for you."}]},{"id":"6A3A496E","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Engaged","cls":"neutral","date":"2026-06-23 08:53","msgs":[{"r":"user","t":"hi"},{"r":"bot","t":"Hi there! How can I assist you today?"}]},{"id":"6A3A33A6","visitor":"Web Shopper","channel":"Web Chat","intent":"Service","outcome":"Callback Requested","cls":"warm","date":"2026-06-23 07:20","msgs":[{"r":"user","t":"Can you please connect me to service team"},{"r":"user","t":"Please connect me to service team"},{"r":"bot","t":"Sure thing — what's the best number to reach you?"}]},{"id":"6A39B5B2","visitor":"Web Shopper","channel":"Web Chat","intent":"Service","outcome":"Engaged","cls":"neutral","date":"2026-06-22 22:22","msgs":[{"r":"user","t":"service"},{"r":"bot","t":"To get started with booking a service appointment, could you please provide your phone number?"},{"r":"user","t":"i have service enquiry"},{"r":"bot","t":"Sure, I'd be happy to assist with your service inquiry. Could you please provide your phone number to help me look up your details?"},{"r":"user","t":"without phone number just general enquiry on oil change"},{"r":"bot","t":"For general service inquiries like oil changes, it's best to contact our service department directly for precise pricing and options. Would you like me to arrange a callback for you?"}]},{"id":"6A39B595","visitor":"Web Shopper","channel":"Web Chat","intent":"Sales","outcome":"Engaged","cls":"neutral","date":"2026-06-22 22:22","msgs":[{"r":"user","t":"what is toyota in general proce"},{"r":"bot","t":"We have 21 pre-owned Toyotas, including models like the Tacoma, Corolla, and RAV4. Would you like more details on a specific model?"},{"r":"user","t":"i wants ervice details"},{"r":"bot","t":"I can help with test drives, but for service details, our service team would be the best to assist you. Would you like me to arrange a callback from their side?"}]},{"id":"6A398C4E","visitor":"Web Shopper","channel":"Web Chat","intent":"Service","outcome":"Engaged","cls":"neutral","date":"2026-06-22 19:26","msgs":[{"r":"user","t":"I want to schedule a service for my vehicle."},{"r":"bot","t":"To get you set up for a service appointment, may I have your name and the best phone number to reach you?"},{"r":"bot","t":"Thanks for stopping by — happy to answer anything about this one or set up a test drive."},{"r":"user","t":"Tell me more"},{"r":"bot","t":"To help you better, could you narrow down your inquiry? Are you interested in specific features, price, or scheduling a test drive?"}]}],
+  summary:"Scope: <b>VINI chatbot @ Lucki Mazda of Woodbridge</b> (team b60b1bb221), data as of 2026-06-24. The chatbot handled <b>66 conversations</b> and captured <b>7 leads</b> (<b>10.6%</b>); those leads booked <b>4 test drives</b> + <b>4 service appointments</b>, with <b>0 human handoffs</b> (100% AI-resolved). Test-drive/appointment counts come from meetings tied to the chat-captured lead IDs. Lead Source is the dealership's full pipeline (all channels); vehicles &amp; transcripts are from the chat logs.",
+  recos:["This dashboard is scoped to one team via the team_id in its URL.","Conversational AI is a top lead source — keep the chatbot fed with fresh inventory.","Refresh / each page load pulls live once DATA_URL is set."]
+};
+function useRealSnapshot(){
+  const net={id:'all',name:"Lucki Mazda of Woodbridge",daily:[],base:{visitors:0,testDrives:0,serviceAppts:0,handoffs:0,aiResolution:0},sources:[],vehicles:[],conversations:[],summary:'',recos:[]};
+  window._OPTS=[net];
+  document.getElementById('dealerSel').innerHTML='<option value="all">'+net.name+'</option>';
+  current=JSON.parse(JSON.stringify(net));current._liveKpi=null;current._liveFunnel=null;selectedConv=0;
+  applyLive(REAL);renderAll();
+  setStatus('live','Metabase · VINI chat scope · '+REAL.asOf);
+}
+
+/* ---- boot: render baked snapshot instantly, then overlay live data if DATA_URL is set ---- */
+useRealSnapshot();
+if(DATA_URL)loadDealerLive();
+</script>
+</body>
+</html>
