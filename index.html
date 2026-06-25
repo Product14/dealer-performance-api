@@ -215,7 +215,6 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
     <p class="sub">Conversational-AI performance, leads &amp; appointments by dealership · <span id="subAsOf">data as of —</span></p>
     <div class="topbar-actions">
       <button class="btn btn-ghost" id="refreshBtn">⟳ Refresh</button>
-      <button class="btn btn-primary" id="exportBtn">⤓ Export CSV</button>
     </div>
   </div>
 
@@ -682,7 +681,6 @@ document.getElementById('refreshBtn').onclick=()=>{
     setTimeout(()=>{btn.innerHTML=orig;btn.style.opacity='';delete btn.dataset.busy;},1200);
   },350);
 };
-document.getElementById('exportBtn').onclick=exportCsv;
 
 /* ---- tooltips ---- */
 const _tip=document.createElement('div');_tip.className='chart-tip';document.body.appendChild(_tip);
