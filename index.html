@@ -294,7 +294,7 @@ const DATA_URL = "/api/dealer-live"; // same-origin API (served by this same Ver
 const TEAM_ID = new URLSearchParams(location.search).get('team_id') || new URLSearchParams(location.search).get('team') || 'b60b1bb221';
 
 let AS_OF="23 Jun 2026";
-let TODAY=new Date('2026-06-24T00:00:00Z');
+let TODAY=new Date(new Date().toISOString().slice(0,10)+'T00:00:00Z'); // real current day (UTC) so date filters track today
 
 /* ---- embedded snapshot ---- */
 let DEALERS=[
