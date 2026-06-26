@@ -157,7 +157,7 @@ async function buildTranscripts(team, since) {
       durationMin: (startTs != null && endTs != null) ? Math.max(0, Math.round((endTs - startTs) / 60000)) : null,
       msgs,
     });
-    if (out.length >= 20) break;
+    if (out.length >= 200) break;
   }
   return out;
 }
