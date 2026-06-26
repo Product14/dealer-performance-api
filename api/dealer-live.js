@@ -152,12 +152,34 @@ async function buildTranscripts(team, since) {
       agent, intent: agent === "service" ? "Service" : "Sales", channel: "Web Chat",
       outcome, cls,
       hasLead: !!(leadId && String(leadId).trim()),
+      _lead: (leadId && String(leadId).trim()) || "",
       date: String(createdAt).slice(0, 16).replace("T", " "),
       startTs, endTs,
       durationMin: (startTs != null && endTs != null) ? Math.max(0, Math.round((endTs - startTs) / 60000)) : null,
       msgs,
     });
     if (out.length >= 200) break;
+  }
+  // Tie test-drive / service / completed to REAL bookings (the conversation's lead -> a meeting),
+  // so the chip and the KPI both reflect actual bookings, not the AI's wording.
+  const leadIds = [...new Set(out.map((o) => o._lead).filter(Boolean))];
+  const td = new Set(), svc = new Set(), comp = new Set();
+  if (leadIds.length) {
+    const inList = leadIds.map((l) => `'${l.replace(/'/g, "")}'`).join(",");
+    try {
+      const mr = await q(`SELECT lead_id, countIf(lower(intent) LIKE '%test%') AS td, countIf(service_type='service') AS svc, countIf(status='completed') AS comp FROM dealer_leads.meetings WHERE lead_id IN (${inList}) GROUP BY lead_id`);
+      for (const [lid, t, s, c2] of mr.rows) { if (+t > 0) td.add(lid); if (+s > 0) svc.add(lid); if (+c2 > 0) comp.add(lid); }
+    } catch {}
+  }
+  for (const o of out) {
+    o.hasTestDrive = td.has(o._lead);
+    o.hasServiceAppt = svc.has(o._lead);
+    o.hasCompleted = comp.has(o._lead);
+    if (o.hasTestDrive) { o.outcome = "Test Drive Booked"; o.cls = "committed"; }
+    else if (o.hasServiceAppt) { o.outcome = "Service Booked"; o.cls = "committed"; }
+    else if (o.hasLead) { o.outcome = "Lead Captured"; o.cls = "warm"; }
+    else if (o.outcome === "Test Drive Booked") { o.outcome = "Engaged"; o.cls = "neutral"; } // demote false heuristic
+    delete o._lead;
   }
   return out;
 }
