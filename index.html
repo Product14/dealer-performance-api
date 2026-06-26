@@ -262,19 +262,19 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
   <div class="ksm" id="ksm"></div>
 
   <div class="panel">
-    <h3>Conversations &amp; Leads — Daily Trend</h3>
-    <p class="phint">Daily AI conversations (blue) and leads captured (amber).</p>
+    <h3>Conversations &amp; Leads, Daily Trend</h3>
+    <p class="phint">Daily chat conversations (purple) and leads captured (amber).</p>
     <div id="c_daily"></div>
   </div>
 
   <div class="grid2">
     <div class="panel"><h3>Conversion Funnel</h3><p class="phint">Chat conversations → leads captured (with conversion rate).</p><div id="c_funnel" class="fwrap"></div></div>
-    <div class="panel"><h3>Dealership Lead Sources · All Channels</h3><p class="phint">Lucki Mazda's <b>full lead pipeline</b> by source (all channels, incl. voice AI &amp; walk-ins) — the broader picture, <b>not</b> only the chatbot's captured leads above. From dealer_leads.leads.</p><div id="c_sources"></div></div>
+    <div class="panel"><h3>Dealership Lead Sources · All Channels</h3><p class="phint">The dealership's full lead pipeline by source (all channels, including voice AI and walk-ins). This is the broader picture, not only the chatbot's captured leads above.</p><div id="c_sources"></div></div>
   </div>
 
   <div class="panel">
     <h3>Most Viewed Vehicles</h3>
-    <p class="phint">Unique chat viewers + VDP opens · from chatBrowsingHistory ⋈ inventory (names) + chatCompletions.</p>
+    <p class="phint">Vehicles shoppers viewed during chat, by unique viewers and total opens.</p>
     <table id="t_vehicles"><thead><tr><th>Vehicle</th><th class="num">Viewers</th><th class="num">Opens</th><th class="num">Price</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -513,10 +513,16 @@ function asPct(v){v=+v||0;return v>0&&v<=1?v*100:v;}
 function metrics(){
   const d=slice(current.daily);
   if(current._liveKpi){
-    const k=current._liveKpi;
-    // conversations + leads recompute from the date-sliced daily series
-    const conv=d.reduce((a,x)=>a+(+x[1]||0),0);
-    const leads=d.reduce((a,x)=>a+(+x[2]||0),0);
+    const k=current._liveKpi;const b=bounds();
+    // Conversations + leads derive from the SAME conversation list shown in My Conversations,
+    // so the KPI cards and the list always agree. Date-filtered only (not agent/lead filters).
+    const inR=c=>{if(!b)return true;const ts=c.startTs!=null?c.startTs:(c.date?Date.parse(c.date.replace(' ','T')+'Z'):null);return ts==null?true:(ts>=b.start.getTime()&&ts<=b.end.getTime());};
+    const convs=(current.conversations||[]).filter(inR);
+    const conv=convs.length;
+    const leads=convs.filter(c=>c.hasLead).length;
+    const dmap={};
+    convs.forEach(c=>{const day=c.startTs?new Date(c.startTs).toISOString().slice(0,10):String(c.date||'').slice(0,10);if(!day)return;(dmap[day]=dmap[day]||[0,0]);dmap[day][0]++;if(c.hasLead)dmap[day][1]++;});
+    const d=Object.keys(dmap).sort().map(day=>[day,dmap[day][0],dmap[day][1]]);
     // test drives / service / completed recompute from the sliced per-day meetings series
     const da=Array.isArray(current.dailyAppts)?slice(current.dailyAppts):[];
     const testDrives=da.reduce((a,x)=>a+(+x[1]||0),0);
@@ -605,7 +611,7 @@ function renderKpis(m){
   document.getElementById('ksm').innerHTML=small.map(k=>`<div class="kcard${k[2]?' clickable':''}" ${k[2]?`data-cf="${k[2]}"`:''}><div class="klabel">${k[0]}</div><div class="kval">${k[1]}</div></div>`).join('');
   document.querySelectorAll('#kbig .clickable,#ksm .clickable').forEach(el=>el.onclick=()=>applyKpiFilter(el.dataset.cf));
 }
-const EMPTY_NOTE='<span style="color:var(--faint)">Not available at chatbot scope — needs new instrumentation</span>';
+const EMPTY_NOTE='<span style="color:var(--faint)">No data for this dealer yet.</span>';
 function renderVehicles(){
   const tb=document.querySelector('#t_vehicles tbody');
   if(!current.vehicles.length){tb.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:18px">${EMPTY_NOTE}</td></tr>`;return;}
