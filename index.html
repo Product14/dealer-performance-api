@@ -220,6 +220,7 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 .agtag.service{background:#0891B214;color:var(--cyan);}
 .chip.lead{background:var(--color-success-soft,#027A481A);color:var(--green);padding:1px 8px;border-radius:9999px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
 .conv-item .ci-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.ci-num{color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;margin-right:2px;}
 .custom-row{align-items:center;gap:10px;}
 .dateinput{height:36px;padding:6px 10px;border:1px solid var(--bdr-strong);border-radius:var(--r);font-family:inherit;font-size:13px;color:var(--txt);background:#fff;}
 .dateinput:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
@@ -637,7 +638,7 @@ function renderConvList(){
     const time=(c.startTs&&c.endTs)?`${fmtD(c.startTs)}, ${fmtT(c.startTs)} - ${fmtT(c.endTs)}`:(c.date||'');
     const dur=(c.durationMin!=null)?` · ${c.durationMin} min`:'';
     const lead=c.hasLead?'<span class="chip lead">lead</span>':'';
-    return `<div class="conv-item ${i===selectedConv?'active':''}" data-i="${i}"><div class="ci-top"><span class="ci-name">${c.visitor}</span><span class="tag ${c.cls}">${c.outcome}</span></div><div class="ci-meta"><span class="agtag ${c.agent}">${c.intent}</span>${lead}</div><div class="ci-meta"><span>${time}${dur}</span></div></div>`;
+    return `<div class="conv-item ${i===selectedConv?'active':''}" data-i="${i}"><div class="ci-top"><span class="ci-name"><span class="ci-num">${i+1}.</span> ${c.visitor}</span><span class="tag ${c.cls}">${c.outcome}</span></div><div class="ci-meta"><span class="agtag ${c.agent}">${c.intent}</span>${lead}</div><div class="ci-meta"><span>${time}${dur}</span></div></div>`;
   }).join('');
   document.querySelectorAll('#convList .conv-item').forEach(el=>el.onclick=()=>{selectedConv=+el.dataset.i;renderConvList();renderChat();});
 }
