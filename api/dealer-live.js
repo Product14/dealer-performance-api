@@ -40,6 +40,11 @@ function classify(bot) {
   if (/best number to reach you|have someone.*call you|connect (you )?(to|with) (our|the) (store|team|service)/.test(t)) return ["Callback Requested", "warm"];
   return ["Engaged", "neutral"];
 }
+function fmtPhone(p) { const d = String(p || ""); const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(d); return m ? `+1 ${m[1]}-${m[2]}-${m[3]}` : d; }
+function visitorName(identityStr) {
+  try { const o = JSON.parse(identityStr || "{}"); const nm = [o.firstName, o.lastName].filter(Boolean).join(" ").trim(); if (nm) return nm; if (o.phone) return fmtPhone(o.phone); if (o.email) return o.email; } catch {}
+  return "Web Shopper";
+}
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -118,13 +123,18 @@ async function buildVehicles(team, since) {
 }
 
 async function buildTranscripts(team, since) {
-  const res = await q(`SELECT cmp.id AS id, cmp.agentType AS agentType, cmp.createdAt AS createdAt, cmp.messages AS messages FROM chat_service.chatCompletions cmp INNER JOIN chat_service.chatConversations cc ON cmp.conversationId = cc.conversationId WHERE cc.teamId='${team}' AND cmp.__deleted=0 AND cmp.messages != '' AND cmp.createdAt >= ${since} ORDER BY cmp.createdAt DESC LIMIT 250`);
+  const res = await q(`SELECT cmp.id AS id, cmp.createdAt AS createdAt, cmp.messages AS messages, cs.activeAgentType AS agent, cs.leadId AS leadId, cs.identity AS identity
+    FROM chat_service.chatCompletions cmp
+    INNER JOIN chat_service.chatSessions cs ON cmp.sessionId = cs.sessionId
+    WHERE cs.teamId='${team}' AND cmp.__deleted=0 AND cmp.messages != '' AND cmp.createdAt >= ${since}
+    ORDER BY cmp.createdAt DESC LIMIT 250`);
   const out = [];
-  for (const [id, agentType, createdAt, messages] of res.rows) {
+  for (const [id, createdAt, messages, agentRaw, leadId, identity] of res.rows) {
     let arr; try { arr = JSON.parse(messages); } catch { continue; }
     if (!Array.isArray(arr)) continue;
-    const msgs = []; let realUser = 0; let lastVdp = "";
+    const msgs = []; let realUser = 0; let lastVdp = ""; const ts = [];
     for (const m of arr) {
+      if (typeof m._ts === "number") ts.push(m._ts);
       if (m.role === "user") {
         const c = String(m.content || ""); const v = VDP.exec(c);
         if (c.includes("SystemEvent") || v) { if (v) { const name = v[1].trim().replace(/\bMazda Mazda/i, "Mazda"); if (name !== lastVdp) { msgs.push({ r: "user", t: `👁 Opened VDP — ${name} ($${v[2]})` }); lastVdp = name; } } continue; }
@@ -134,8 +144,20 @@ async function buildTranscripts(team, since) {
     if (realUser < 1 || msgs.length < 2) continue;
     const bot = msgs.filter((x) => x.r === "bot").map((x) => x.t).join(" ");
     const [outcome, cls] = classify(bot);
-    out.push({ id: String(id).slice(0, 8).toUpperCase(), visitor: "Web Shopper", channel: "Web Chat", intent: agentType === "service" ? "Service" : "Sales", outcome, cls, date: String(createdAt).slice(0, 16).replace("T", " "), msgs });
-    if (out.length >= 12) break;
+    const startTs = ts.length ? Math.min(...ts) : null, endTs = ts.length ? Math.max(...ts) : null;
+    const agent = agentRaw === "service" ? "service" : "sales";
+    out.push({
+      id: String(id).slice(0, 8).toUpperCase(),
+      visitor: visitorName(identity),
+      agent, intent: agent === "service" ? "Service" : "Sales", channel: "Web Chat",
+      outcome, cls,
+      hasLead: !!(leadId && String(leadId).trim()),
+      date: String(createdAt).slice(0, 16).replace("T", " "),
+      startTs, endTs,
+      durationMin: (startTs != null && endTs != null) ? Math.max(0, Math.round((endTs - startTs) / 60000)) : null,
+      msgs,
+    });
+    if (out.length >= 20) break;
   }
   return out;
 }

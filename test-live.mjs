@@ -15,6 +15,11 @@ const res = {
     console.log("sources:", (o.sources || []).length, "| vehicles:", (o.vehicles || []).length, "| transcripts:", (o.conversations || []).length);
     console.log("top vehicle:", JSON.stringify((o.vehicles || [])[0]));
     console.log("top source:", JSON.stringify((o.sources || [])[0]));
+    console.log("--- conversations sample (visitor | agent | hasLead | dur | start->end) ---");
+    (o.conversations || []).slice(0, 6).forEach((c) => {
+      const t = (ms) => ms ? new Date(ms).toISOString().slice(11, 16) : "?";
+      console.log(`  ${c.visitor} | ${c.agent} | lead:${c.hasLead} | ${c.durationMin}min | ${t(c.startTs)}->${t(c.endTs)} | ${c.outcome}`);
+    });
     if (o.error) console.log("ERROR:", o.error);
     return this;
   },
