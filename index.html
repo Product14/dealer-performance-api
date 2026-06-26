@@ -616,7 +616,7 @@ function renderConvList(){
     const time=(c.startTs&&c.endTs)?`${fmtD(c.startTs)}, ${fmtT(c.startTs)} - ${fmtT(c.endTs)}`:(c.date||'');
     const dur=(c.durationMin!=null)?` · ${c.durationMin} min`:'';
     const lead=c.hasLead?'<span class="chip lead">lead</span>':'';
-    return `<div class="conv-item ${i===selectedConv?'active':''}" data-i="${i}"><div class="ci-top"><span class="ci-name">${c.visitor}</span><span class="tag ${c.cls}">${c.outcome}</span></div><div class="ci-meta"><span class="agtag ${c.agent}">${c.intent}</span>${lead}<span class="ci-id">${c.id}</span></div><div class="ci-meta"><span>${time}${dur}</span></div></div>`;
+    return `<div class="conv-item ${i===selectedConv?'active':''}" data-i="${i}"><div class="ci-top"><span class="ci-name">${c.visitor}</span><span class="tag ${c.cls}">${c.outcome}</span></div><div class="ci-meta"><span class="agtag ${c.agent}">${c.intent}</span>${lead}</div><div class="ci-meta"><span>${time}${dur}</span></div></div>`;
   }).join('');
   document.querySelectorAll('#convList .conv-item').forEach(el=>el.onclick=()=>{selectedConv=+el.dataset.i;renderConvList();renderChat();});
 }
@@ -624,7 +624,7 @@ function renderChat(){
   const c=filteredConvs()[selectedConv];if(!c){document.getElementById('chat').innerHTML='';return;}
   document.getElementById('chTitle').textContent=c.visitor;
   const time=(c.startTs&&c.endTs)?`${fmtD(c.startTs)}, ${fmtT(c.startTs)} - ${fmtT(c.endTs)} (${c.durationMin} min)`:(c.date||'');
-  document.getElementById('chMeta').textContent=`${c.intent} · ${c.id} · ${time}`;
+  document.getElementById('chMeta').textContent=`${c.intent} · ${time}`;
   document.getElementById('chTag').innerHTML=`<span class="tag ${c.cls}">${c.outcome}</span>`;
   document.getElementById('chat').innerHTML=c.msgs.map(m=>`<div class="bub ${m.r}"><div class="who">${m.r==='user'?(c.visitor||'Shopper'):'VINI AI'}</div>${m.t}</div>`).join('');
 }
