@@ -165,7 +165,7 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 .hdr{height:60px;background:var(--card);}
 .hdr h1{font-size:18px;}
 .hdr .hpill{background:var(--bg);border:1px solid var(--bdr);}
-.wrap{max-width:1760px;width:100%;}
+.wrap{max-width:none;width:100%;padding-left:clamp(16px,2.5vw,56px);padding-right:clamp(16px,2.5vw,56px);}
 .topbar .sub{font-size:13px;color:#5d6b82;}
 .btn-primary{background:var(--accent);box-shadow:0 4px 12px var(--accent-soft);}
 .btn-ghost{background:rgba(255,255,255,.85);}
@@ -316,7 +316,7 @@ const SRC_COLORS={'Website':C.accent,'Google Search':C.green,'Facebook':C.indigo
        vehicles:[[name,views,inq,td]], funnel:[[label,val]],
        conversations:[{id,visitor,channel,intent,outcome,cls,date,msgs}] }
    ============================================================ */
-const DATA_URL = "/api/dealer-live"; // same-origin API (served by this same Vercel project)
+const DATA_URL = "/api/dealer-live"; // same-origin API
 /* Which dealer this page shows = the team_id in the page's own URL, e.g.
      dealer-performance.html?team_id=b60b1bb221   (Lucki Mazda of Woodbridge)
    Each dealership just opens their own link. Falls back to Lucki if none given. */
