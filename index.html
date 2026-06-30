@@ -218,6 +218,15 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 .seg button{border:none;background:transparent;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--muted);padding:6px 16px;border-radius:9999px;cursor:pointer;transition:all .15s;}
 .seg button:hover{color:var(--txt);}
 .seg button.active{background:var(--accent);color:#fff;}
+.scopebar{display:flex;align-items:center;gap:16px;margin-top:16px;flex-wrap:wrap;}
+.scopeseg{display:inline-flex;background:var(--card);border:1px solid var(--bdr);border-radius:9999px;padding:4px;gap:3px;box-shadow:var(--shadow);}
+.scopeseg button{border:none;background:transparent;font-family:inherit;font-size:14px;font-weight:700;color:var(--muted);padding:9px 28px;border-radius:9999px;cursor:pointer;transition:all .15s;letter-spacing:.02em;}
+.scopeseg button:hover{color:var(--txt);}
+.scopeseg button.active{background:var(--accent);color:#fff;box-shadow:0 4px 12px var(--accent-soft);}
+.scopeseg button[data-s="sales"].active{background:#4600F2;}
+.scopeseg button[data-s="service"].active{background:#0891B2;box-shadow:0 4px 12px #0891B233;}
+.scopehint{font-size:12.5px;color:var(--muted);font-weight:500;}
+@media(max-width:560px){.scopeseg button{padding:8px 18px;font-size:13px;}}
 .convbanner{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;}
 .convbanner .chip{background:var(--accent-soft);color:var(--accent);padding:3px 10px;border-radius:9999px;font-weight:600;}
 .banner-clear{border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;text-decoration:underline;}
@@ -259,6 +268,15 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
     </div>
   </div>
 
+  <div class="scopebar">
+    <div class="scopeseg" id="scopeSeg">
+      <button data-s="all" class="active">All</button>
+      <button data-s="sales">Sales</button>
+      <button data-s="service">Service</button>
+    </div>
+    <span class="scopehint" id="scopeHint"></span>
+  </div>
+
   <div class="filterbar">
     <div class="frow">
       <div class="selectwrap" style="display:none"><label>Dealer</label><select id="dealerSel"></select></div>
@@ -287,10 +305,10 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 
   <div class="grid2">
     <div class="panel"><h3>Conversion Funnel</h3><p class="phint">Chat conversations → leads captured (with conversion rate).</p><div id="c_funnel" class="fwrap"></div></div>
-    <div class="panel"><h3>Dealership Lead Sources · All Channels</h3><p class="phint">The dealership's full lead pipeline by source (all channels, including voice AI and walk-ins). This is the broader picture, not only the chatbot's captured leads above.</p><div id="c_sources"></div></div>
+    <div class="panel" id="panel_sources"><h3>Dealership Lead Sources · All Channels</h3><p class="phint">The dealership's full lead pipeline by source (all channels, including voice AI and walk-ins). This is the broader picture, not only the chatbot's captured leads above.</p><div id="c_sources"></div></div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="panel_vehicles">
     <h3>Most Viewed Vehicles</h3>
     <p class="phint">Vehicles shoppers viewed during chat, by unique viewers and total opens.</p>
     <table id="t_vehicles"><thead><tr><th>Vehicle</th><th class="num">Viewers</th><th class="num">Opens</th><th class="num">Price</th></tr></thead><tbody></tbody></table>
@@ -313,7 +331,6 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
     <h3>My Conversations</h3>
     <p class="phint">Real chat sessions. Click a KPI above to filter, or pick a conversation to read the full transcript.</p>
     <div class="convbar">
-      <div class="seg" id="agentSeg"><button data-a="all" class="active">All</button><button data-a="sales">Sales</button><button data-a="service">Service</button></div>
       <span class="convbanner" id="convBanner"></span>
     </div>
     <div class="msgwrap">
@@ -503,12 +520,15 @@ function buildAll(){
 }
 
 /* ---- state ---- */
-let current=null, range='all', selectedConv=0, convFilter='all', agentFilter='all', customStart='', customEnd='';
+let current=null, range='all', selectedConv=0, convFilter='all', scope='all', customStart='', customEnd='';
 const fmtT=ms=>ms?new Date(ms).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'';
 const fmtD=ms=>ms?new Date(ms).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
-function filteredConvs(){const b=bounds();return (current.conversations||[]).filter(c=>{
-  if(b){const ts=c.startTs!=null?c.startTs:(c.date?Date.parse(c.date.replace(' ','T')+'Z'):null);if(ts!=null&&(ts<b.start.getTime()||ts>b.end.getTime()))return false;}
-  if(agentFilter!=='all'&&c.agent!==agentFilter)return false;
+// Global scope (ALL / SALES / SERVICE) — re-scopes the WHOLE dashboard, not just the list.
+function matchScope(c){return scope==='all'||c.agent===scope;}
+function inDate(c){const b=bounds();if(!b)return true;const ts=c.startTs!=null?c.startTs:(c.date?Date.parse(c.date.replace(' ','T')+'Z'):null);return ts==null?true:(ts>=b.start.getTime()&&ts<=b.end.getTime());}
+function scopedConvs(){return (current.conversations||[]).filter(c=>inDate(c)&&matchScope(c));}
+function filteredConvs(){return (current.conversations||[]).filter(c=>{
+  if(!inDate(c)||!matchScope(c))return false;
   if(convFilter==='leads'&&!c.hasLead)return false;
   if(convFilter==='testdrive'&&!c.hasTestDrive)return false;
   if(convFilter==='service'&&!c.hasServiceAppt)return false;
@@ -516,7 +536,12 @@ function filteredConvs(){const b=bounds();return (current.conversations||[]).fil
 });}
 const CF_LABEL={all:'',leads:'Leads captured',testdrive:'Test drives',service:'Service chats'};
 function applyKpiFilter(cf){convFilter=cf||'all';selectedConv=0;renderConvList();renderChat();const p=document.getElementById('convPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});}
-function setAgentFilter(a){agentFilter=a;selectedConv=0;document.querySelectorAll('#agentSeg button').forEach(b=>b.classList.toggle('active',b.dataset.a===a));renderConvList();renderChat();}
+const SCOPE_HINT={all:'Showing all chats — Sales and Service combined.',sales:'Showing Sales chats only — vehicle shopping, test drives, financing.',service:'Showing Service chats only — appointments, maintenance, repairs.'};
+function setScope(s){scope=s;convFilter='all';selectedConv=0;
+  document.querySelectorAll('#scopeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.s===s));
+  const h=document.getElementById('scopeHint');if(h)h.textContent=SCOPE_HINT[s]||'';
+  renderAll();
+}
 
 /* ---- date filtering ---- */
 function bounds(){
@@ -545,11 +570,10 @@ function asPct(v){v=+v||0;return v>0&&v<=1?v*100:v;}
 function metrics(){
   const d=slice(current.daily);
   if(current._liveKpi){
-    const k=current._liveKpi;const b=bounds();
-    // Conversations + leads derive from the SAME conversation list shown in My Conversations,
-    // so the KPI cards and the list always agree. Date-filtered only (not agent/lead filters).
-    const inR=c=>{if(!b)return true;const ts=c.startTs!=null?c.startTs:(c.date?Date.parse(c.date.replace(' ','T')+'Z'):null);return ts==null?true:(ts>=b.start.getTime()&&ts<=b.end.getTime());};
-    const convs=(current.conversations||[]).filter(inR);
+    const k=current._liveKpi;
+    // Conversations + leads derive from the SAME conversation list shown in My Conversations
+    // (date + scope filtered), so the KPI cards and the list always agree.
+    const convs=scopedConvs();
     const conv=convs.length;
     const leads=convs.filter(c=>c.hasLead).length;
     const dmap={};
@@ -634,19 +658,23 @@ function renderKpis(m){
   const NA=v=>(v==null||Number.isNaN(v))?'N/A':fmt(v);
   const pct=v=>(v==null||Number.isNaN(v))?'N/A':(+v).toFixed(1)+'%';
   const splitHTML=s=>s?`<div class="ksplit"><span class="sp sales">Sales <b>${fmt(s[0])}</b></span><span class="sp service">Service <b>${fmt(s[1])}</b></span></div>`:'';
+  const convSub=scope==='sales'?'Sales chat sessions':scope==='service'?'Service chat sessions':'AI chat sessions';
+  // Split pills only make sense on the combined ALL view.
+  const showSplit=scope==='all';
   const big=[
-    ['Total Conversations',NA(m.conv),'AI chat sessions',C.svc,100,'all',m.split&&m.split.conv],
-    ['Leads Captured',NA(m.leads),pct(m.leadRate)+' capture rate',C.green,m.leadRate==null?0:Math.min(100,Math.round(m.leadRate)),'leads',m.split&&m.split.leads],
-    ['Test Drives Booked',NA(m.testDrives),'AI-booked this period',C.amber,100,'testdrive',null]
+    ['Total Conversations',NA(m.conv),convSub,C.svc,100,'all',showSplit&&m.split&&m.split.conv],
+    ['Leads Captured',NA(m.leads),pct(m.leadRate)+' capture rate',C.green,m.leadRate==null?0:Math.min(100,Math.round(m.leadRate)),'leads',showSplit&&m.split&&m.split.leads]
   ];
+  // 3rd big card swaps by scope: Test Drives for Sales, Service Appointments for Service.
+  if(scope==='service') big.push(['Service Appointments Booked',NA(m.serviceAppts),'AI-booked this period',C.amber,100,'service',null]);
+  else big.push(['Test Drives Booked',NA(m.testDrives),'AI-booked this period',C.amber,100,'testdrive',null]);
   document.getElementById('kbig').innerHTML=big.map((b,i)=>`<div class="kcard${b[5]?' clickable':''}" ${b[5]?`data-cf="${b[5]}"`:''}>${kicon(i)}<div class="klabel">${b[0]}</div><div class="kval">${b[1]}</div><div class="ksub">${b[2]}</div>${splitHTML(b[6])}<div class="kbar"><i style="width:${b[4]}%;background:${b[3]}"></i></div>${b[5]?'<div class="kclick">View chats →</div>':''}</div>`).join('');
-  const small=[
-    ['Lead Capture Rate',pct(m.leadRate),'leads'],
-    ['Service Appointments',NA(m.serviceAppts),'service'],
-    ['Completed Appointments',NA(m.completedAppts),''],
-    ['AI Resolution Rate',pct(m.aiRes),''],
-    ['Human Handoffs',NA(m.handoffs),'']
-  ];
+  const small=[['Lead Capture Rate',pct(m.leadRate),'leads']];
+  // Show Service Appointments in the small row only on ALL (it's the 3rd big card on Service, irrelevant on Sales).
+  if(scope==='all') small.push(['Service Appointments',NA(m.serviceAppts),'service']);
+  small.push(['Completed Appointments',NA(m.completedAppts),'']);
+  small.push(['AI Resolution Rate',pct(m.aiRes),'']);
+  small.push(['Human Handoffs',NA(m.handoffs),'']);
   document.getElementById('ksm').innerHTML=small.map(k=>`<div class="kcard${k[2]?' clickable':''}" ${k[2]?`data-cf="${k[2]}"`:''}><div class="klabel">${k[0]}</div><div class="kval">${k[1]}</div></div>`).join('');
   document.querySelectorAll('#kbig .clickable,#ksm .clickable').forEach(el=>el.onclick=()=>applyKpiFilter(el.dataset.cf));
 }
@@ -657,14 +685,9 @@ function renderVehicles(){
   const max=Math.max(1,...current.vehicles.map(v=>+v[1]||0));
   tb.innerHTML=current.vehicles.map(v=>`<tr><td style="font-weight:600">${v[0]}</td><td class="num"><div class="ratecell"><span class="ratebar"><i style="width:${Math.round((+v[1]||0)/max*100)}%"></i></span>${fmt(v[1])}</div></td><td class="num">${v[2]!=null?fmt(v[2]):'—'}</td><td class="num">${v[3]!=null&&v[3]!==''?v[3]:'—'}</td></tr>`).join('');
 }
-function dateFilteredConvs(){
-  const b=bounds();
-  const inR=c=>{if(!b)return true;const ts=c.startTs!=null?c.startTs:(c.date?Date.parse(c.date.replace(' ','T')+'Z'):null);return ts==null?true:(ts>=b.start.getTime()&&ts<=b.end.getTime());};
-  return (current.conversations||[]).filter(inR);
-}
 function barList(elId,keyFn,fallback,colorMap){
   const el=document.getElementById(elId);if(!el)return;
-  const convs=dateFilteredConvs();
+  const convs=scopedConvs();
   const counts={};convs.forEach(c=>{const k=keyFn(c)||fallback;counts[k]=(counts[k]||0)+1;});
   const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   if(!rows.length){el.innerHTML=`<p style="padding:14px 4px;font-size:12.5px">${EMPTY_NOTE}</p>`;return;}
@@ -717,6 +740,7 @@ function renderHeader(m){
   document.getElementById('scope').textContent=`${conv} conversations · ${m.d.length} active day${m.d.length===1?'':'s'}`;
 }
 function renderAll(){
+  const sh=document.getElementById('scopeHint');if(sh)sh.textContent=SCOPE_HINT[scope]||'';
   const m=metrics();
   renderHeader(m);renderKpis(m);
   if(m.d.length>=2)lineChart('c_daily',m.d.map(x=>dayLabel(x[0])),[{name:'Conversations',color:C.accent,data:m.d.map(x=>x[1]),fill:true},{name:'Leads',color:C.amber,data:m.d.map(x=>x[2])}]);
@@ -727,6 +751,10 @@ function renderAll(){
   funnel('c_funnel',fstages);
   if(current.sources.length)donut('c_sources',current.sources.map(s=>{const r=Math.round(s[1]*m.ratio);return [s[0],r,s[2]];}));
   else document.getElementById('c_sources').innerHTML=`<p style="padding:14px 4px;font-size:12.5px">${EMPTY_NOTE}</p>`;
+  // Scope-specific panels: Lead Sources is dealership-wide (all channels), Vehicles is a shopping signal.
+  const showHide=(id,show)=>{const el=document.getElementById(id);if(el)el.style.display=show?'':'none';};
+  showHide('panel_sources',scope==='all');     // all-channels pipeline — only meaningful on the combined view
+  showHide('panel_vehicles',scope!=='service'); // vehicle browsing is a Sales/shopping signal
   renderVehicles();renderIntents();renderOutcomes();renderSummary();renderConvList();renderChat();
 }
 
@@ -809,7 +837,7 @@ document.querySelectorAll('#dateGroup button').forEach(b=>b.onclick=()=>{
 document.getElementById('cFrom').onchange=e=>{customStart=e.target.value;renderAll();};
 document.getElementById('cTo').onchange=e=>{customEnd=e.target.value;renderAll();};
 document.getElementById('cClear').onclick=()=>{customStart='';customEnd='';document.getElementById('cFrom').value='';document.getElementById('cTo').value='';renderAll();};
-document.querySelectorAll('#agentSeg button').forEach(b=>b.onclick=()=>setAgentFilter(b.dataset.a));
+document.querySelectorAll('#scopeSeg button').forEach(b=>b.onclick=()=>setScope(b.dataset.s));
 document.getElementById('refreshBtn').onclick=()=>{
   const btn=document.getElementById('refreshBtn');if(btn.dataset.busy)return;
   const orig=btn.innerHTML;btn.dataset.busy='1';btn.style.opacity='.7';btn.innerHTML='⟳ Refreshing…';
