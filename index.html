@@ -296,10 +296,17 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
     <table id="t_vehicles"><thead><tr><th>Vehicle</th><th class="num">Viewers</th><th class="num">Opens</th><th class="num">Price</th></tr></thead><tbody></tbody></table>
   </div>
 
-  <div class="panel">
-    <h3>Conversation Intents</h3>
-    <p class="phint">What shoppers asked about, grouped by topic across these conversations.</p>
-    <div id="c_intents"></div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Enquiry Intent</h3>
+      <p class="phint">What shoppers asked about, grouped by topic.</p>
+      <div id="c_intents"></div>
+    </div>
+    <div class="panel">
+      <h3>Conversation Outcome</h3>
+      <p class="phint">What each conversation resulted in.</p>
+      <div id="c_outcomes"></div>
+    </div>
   </div>
 
   <div class="panel" id="convPanel">
@@ -324,6 +331,7 @@ const C={accent:'#4600F2',svc:'#4600F2',green:'#027A48',amber:'#F59E0B',purple:'
 const fmt=n=>{n=+n||0;return n>=1000?Math.round(n).toLocaleString():(Number.isInteger(n)?String(n):n.toFixed(1));};
 const SRC_COLORS={'Website':C.accent,'Google Search':C.green,'Facebook':C.indigo,'Instagram':C.purple,'Referral':C.amber,'Walk-in':C.cyan,'Other':C.faint};
 const INTENT_COLORS={'Test Drive':'#7C3AED','Service & Maintenance':'#0891B2','Financing & Payments':'#F59E0B','Trade-In':'#16A34A','Vehicle Availability & Pricing':'#2563EB','Hours & Location':'#6366F1','General Inquiry':'#94A3B8'};
+const OUTCOME_COLORS={'Test Drive Booked':'#16A34A','Service Booked':'#0891B2','Lead Captured':'#4600F2','Callback Requested':'#F59E0B','Engaged':'#94A3B8'};
 
 /* ============================================================
    LIVE DATA LAYER  (Metabase signed-embedding proxy)
@@ -649,20 +657,25 @@ function renderVehicles(){
   const max=Math.max(1,...current.vehicles.map(v=>+v[1]||0));
   tb.innerHTML=current.vehicles.map(v=>`<tr><td style="font-weight:600">${v[0]}</td><td class="num"><div class="ratecell"><span class="ratebar"><i style="width:${Math.round((+v[1]||0)/max*100)}%"></i></span>${fmt(v[1])}</div></td><td class="num">${v[2]!=null?fmt(v[2]):'—'}</td><td class="num">${v[3]!=null&&v[3]!==''?v[3]:'—'}</td></tr>`).join('');
 }
-function renderIntents(){
-  const el=document.getElementById('c_intents');if(!el)return;
+function dateFilteredConvs(){
   const b=bounds();
   const inR=c=>{if(!b)return true;const ts=c.startTs!=null?c.startTs:(c.date?Date.parse(c.date.replace(' ','T')+'Z'):null);return ts==null?true:(ts>=b.start.getTime()&&ts<=b.end.getTime());};
-  const convs=(current.conversations||[]).filter(inR);
-  const counts={};convs.forEach(c=>{const k=c.topic||'General Inquiry';counts[k]=(counts[k]||0)+1;});
+  return (current.conversations||[]).filter(inR);
+}
+function barList(elId,keyFn,fallback,colorMap){
+  const el=document.getElementById(elId);if(!el)return;
+  const convs=dateFilteredConvs();
+  const counts={};convs.forEach(c=>{const k=keyFn(c)||fallback;counts[k]=(counts[k]||0)+1;});
   const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   if(!rows.length){el.innerHTML=`<p style="padding:14px 4px;font-size:12.5px">${EMPTY_NOTE}</p>`;return;}
   const tot=rows.reduce((a,x)=>a+x[1],0)||1;const max=Math.max(...rows.map(r=>r[1]));
   el.innerHTML=rows.map(([label,n])=>{
-    const col=INTENT_COLORS[label]||C.accent;const pct=Math.round(n/tot*100);
+    const col=colorMap[label]||C.accent;const pct=Math.round(n/tot*100);
     return `<div class="intent-row"><span class="intent-label"><span class="intent-dot" style="background:${col}"></span>${label}</span><span class="intent-bar"><i style="width:${Math.round(n/max*100)}%;background:${col}"></i></span><b class="intent-n">${fmt(n)}</b><span class="intent-pct">${pct}%</span></div>`;
   }).join('');
 }
+function renderIntents(){barList('c_intents',c=>c.topic,'General Inquiry',INTENT_COLORS);}
+function renderOutcomes(){barList('c_outcomes',c=>c.outcome,'Engaged',OUTCOME_COLORS);}
 function renderSummary(){
   const el=document.getElementById('aisum');if(!el)return;
   el.innerHTML=`<div class="body"><p>${current.summary}</p></div><div class="recos"><h4>Recommended Actions</h4><ol>${current.recos.map(r=>`<li>${r}</li>`).join('')}</ol></div>`;
@@ -714,7 +727,7 @@ function renderAll(){
   funnel('c_funnel',fstages);
   if(current.sources.length)donut('c_sources',current.sources.map(s=>{const r=Math.round(s[1]*m.ratio);return [s[0],r,s[2]];}));
   else document.getElementById('c_sources').innerHTML=`<p style="padding:14px 4px;font-size:12.5px">${EMPTY_NOTE}</p>`;
-  renderVehicles();renderIntents();renderSummary();renderConvList();renderChat();
+  renderVehicles();renderIntents();renderOutcomes();renderSummary();renderConvList();renderChat();
 }
 
 /* ---- live data (Metabase signed-embedding proxy) ---- */
