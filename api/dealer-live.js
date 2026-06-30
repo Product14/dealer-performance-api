@@ -56,28 +56,29 @@ const INTENT_COLORS = {
 };
 function classifyIntent(userText, vdpOpened, agent, hasTestDrive, hasServiceAppt) {
   const t = String(userText || "").toLowerCase();
-  // Decisive signals from real bookings.
+  // Intent is constrained to the conversation's segment: Service chats only get
+  // Service topics, Sales chats only get Sales topics — so Sales and Service
+  // tabs never cross over (no Test Drive on Service, no Repairs on Sales).
+  if (agent === "service") {
+    if (hasServiceAppt) return "Service Appointment";
+    if (/\b(recall)\b/.test(t)) return "Recall";
+    if (/\b(check engine|won.t start|warning light|noise|grinding|leak|overheat|transmission|ac |a\/c|air condition|heating)\b/.test(t)) return "Repairs";
+    if (/\b(oil change|tire rotation|rotate|brakes?|tires?|fluid|battery|inspection|maintenance|tune[- ]?up|wiper|filter)\b/.test(t)) return "Maintenance";
+    if (/\b(part|parts|accessor|floor mat|cargo|spare)\b/.test(t)) return "Parts & Accessories";
+    if (/\b(schedule|appointment|book|drop ?off|service)\b/.test(t)) return "Service Appointment";
+    if (/\b(hours|are you open|location|address|directions|where are you|how late)\b/.test(t)) return "Hours & Location";
+    return "Service Enquiry";
+  }
+  // Sales segment.
   if (hasTestDrive) return "Test Drive";
-  if (hasServiceAppt) return "Service Appointment";
-  // Topic keywords that apply regardless of which agent handled the chat.
-  if (/\b(recall)\b/.test(t)) return "Recall";
   if (/\b(trade[- ]?in|trade in|appraise|appraisal|value my|what.s my .* worth|trade my)\b/.test(t)) return "Trade-In";
   if (/\b(financ|lease|leasing|apr|credit score|monthly payment|down payment|loan|pre[- ]?qualif|interest rate)\b/.test(t)) return "Financing & Lease";
-  // Service-side topics.
-  const serviceCtx = agent === "service";
-  if (/\b(check engine|won.t start|warning light|noise|grinding|leak|overheat|transmission|ac |a\/c|air condition|heating|won.t)\b/.test(t)) return "Repairs";
-  if (/\b(oil change|tire rotation|rotate|brakes?|tires?|fluid|battery|inspection|maintenance|tune[- ]?up|wiper|filter)\b/.test(t)) return "Maintenance";
-  if (/\b(part|parts|accessor|floor mat|cargo|spare)\b/.test(t)) return "Parts & Accessories";
-  if (serviceCtx && /\b(schedule|appointment|book|drop ?off|service)\b/.test(t)) return "Service Appointment";
-  // Sales-side topics.
   if (/\b(test drive)\b/.test(t)) return "Test Drive";
   if (/\b(deal|special|offer|incentive|rebate|discount|promotion|coupon)\b/.test(t)) return "Offers & Promotions";
   if (/\b(feature|spec|specs|mpg|mileage|color|colour|trim|engine|awd|seats?|towing|compare|vs\b|difference between|warranty)\b/.test(t)) return "Features & Specs";
   if (/\b(price|pricing|cost|how much|msrp|quote|out the door|otd|payment)\b/.test(t)) return "Pricing & Quotes";
   if (/\b(hours|are you open|location|address|directions|where are you|how late)\b/.test(t)) return "Hours & Location";
   if (vdpOpened || /\b(available|availability|in stock|inventory|do you have|looking for|interested in|still have|any .* in)\b/.test(t)) return "Vehicle Availability";
-  // Context fallbacks.
-  if (serviceCtx) return "Service Enquiry";
   return "General Inquiry";
 }
 function fmtPhone(p) { const d = String(p || ""); const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(d); return m ? `+1 ${m[1]}-${m[2]}-${m[3]}` : d; }
@@ -220,6 +221,12 @@ async function buildTranscripts(team, since) {
     o.hasTestDrive = td.has(o._lead);
     o.hasServiceAppt = svc.has(o._lead);
     o.hasCompleted = comp.has(o._lead);
+    // Segment is decided by what actually happened: a test-drive conversation is
+    // Sales, a service-appointment conversation is Service — regardless of the
+    // session's last active agent. Keeps Sales/Service tabs clean and consistent.
+    if (o.hasTestDrive) o.agent = "sales";
+    else if (o.hasServiceAppt) o.agent = "service";
+    o.intent = o.agent === "service" ? "Service" : "Sales";
     if (o.hasTestDrive) { o.outcome = "Test Drive Booked"; o.cls = "committed"; }
     else if (o.hasServiceAppt) { o.outcome = "Service Booked"; o.cls = "committed"; }
     else if (o.hasLead) { o.outcome = "Lead Captured"; o.cls = "warm"; }
