@@ -40,6 +40,25 @@ function classify(bot) {
   if (/best number to reach you|have someone.*call you|connect (you )?(to|with) (our|the) (store|team|service)/.test(t)) return ["Callback Requested", "warm"];
   return ["Engaged", "neutral"];
 }
+// What the shopper was enquiring about — derived from the real conversation
+// (shopper messages + vehicle pages opened + agent type + actual bookings).
+const INTENT_COLORS = {
+  "Test Drive": "#7c3aed", "Service & Maintenance": "#0891b2", "Financing & Payments": "#f59e0b",
+  "Trade-In": "#16a34a", "Vehicle Availability & Pricing": "#2563eb", "Hours & Location": "#6366f1",
+  "General Inquiry": "#94a3b8",
+};
+function classifyIntent(userText, vdpOpened, agent, hasTestDrive, hasServiceAppt) {
+  const t = String(userText || "").toLowerCase();
+  if (hasTestDrive) return "Test Drive";
+  if (hasServiceAppt || agent === "service") return "Service & Maintenance";
+  if (/\b(oil|brakes?|tires?|recall|repair|maintenance|service appointment|servicing)\b/.test(t)) return "Service & Maintenance";
+  if (/\b(trade[- ]?in|trade in|appraise|appraisal|value my|what.s my .* worth|trade my)\b/.test(t)) return "Trade-In";
+  if (/\b(financ|payment|lease|leasing|apr|credit|monthly|down payment|loan|qualify|interest rate)\b/.test(t)) return "Financing & Payments";
+  if (/\b(test drive)\b/.test(t)) return "Test Drive";
+  if (/\b(hours|are you open|location|address|directions|where are you|how late)\b/.test(t)) return "Hours & Location";
+  if (vdpOpened || /\b(available|in stock|inventory|do you have|looking for|interested in|price|pricing|cost|msrp|how much|color|mileage)\b/.test(t)) return "Vehicle Availability & Pricing";
+  return "General Inquiry";
+}
 function fmtPhone(p) { const d = String(p || ""); const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(d); return m ? `+1 ${m[1]}-${m[2]}-${m[3]}` : d; }
 function visitorName(identityStr) {
   try { const o = JSON.parse(identityStr || "{}"); const nm = [o.firstName, o.lastName].filter(Boolean).join(" ").trim(); if (nm) return nm; if (o.phone) return fmtPhone(o.phone); if (o.email) return o.email; } catch {}
@@ -78,6 +97,10 @@ export default async function handler(req, res) {
 
     out.vehicles = await buildVehicles(team, since);
     out.conversations = await buildTranscripts(team, since);
+    // Conversation intents — what shoppers enquired about (aggregated from the live transcripts).
+    const ic = {};
+    for (const c of out.conversations) ic[c.topic] = (ic[c.topic] || 0) + 1;
+    out.intents = Object.entries(ic).sort((a, b) => b[1] - a[1]).map(([label, n], i) => [label, n, INTENT_COLORS[label] || PALETTE[i % PALETTE.length]]);
     return res.status(200).json(out);
   } catch (err) {
     return res.status(502).json({ error: String(err.message || err), partial: out });
@@ -132,13 +155,13 @@ async function buildTranscripts(team, since) {
   for (const [id, createdAt, messages, agentRaw, leadId, identity] of res.rows) {
     let arr; try { arr = JSON.parse(messages); } catch { continue; }
     if (!Array.isArray(arr)) continue;
-    const msgs = []; let realUser = 0; let lastVdp = ""; const ts = [];
+    const msgs = []; let realUser = 0; let lastVdp = ""; const ts = []; const userParts = []; let vdpOpened = false;
     for (const m of arr) {
       if (typeof m._ts === "number") ts.push(m._ts);
       if (m.role === "user") {
         const c = String(m.content || ""); const v = VDP.exec(c);
-        if (c.includes("SystemEvent") || v) { if (v) { const name = v[1].trim().replace(/\bMazda Mazda/i, "Mazda"); if (name !== lastVdp) { msgs.push({ r: "user", t: `👁 Opened VDP — ${name} ($${v[2]})` }); lastVdp = name; } } continue; }
-        msgs.push({ r: "user", t: c.slice(0, 500) }); realUser++; lastVdp = "";
+        if (c.includes("SystemEvent") || v) { if (v) { vdpOpened = true; const name = v[1].trim().replace(/\bMazda Mazda/i, "Mazda"); if (name !== lastVdp) { msgs.push({ r: "user", t: `👁 Opened VDP — ${name} ($${v[2]})` }); lastVdp = name; } } continue; }
+        msgs.push({ r: "user", t: c.slice(0, 500) }); realUser++; userParts.push(c.slice(0, 500)); lastVdp = "";
       } else if (m.role === "assistant") { const t = assistantText(m); if (t) msgs.push({ r: "bot", t: String(t).slice(0, 500) }); lastVdp = ""; }
     }
     if (realUser < 1 || msgs.length < 2) continue;
@@ -153,6 +176,7 @@ async function buildTranscripts(team, since) {
       outcome, cls,
       hasLead: !!(leadId && String(leadId).trim()),
       _lead: (leadId && String(leadId).trim()) || "",
+      _userText: userParts.join(" "), _vdp: vdpOpened,
       date: String(createdAt).slice(0, 16).replace("T", " "),
       startTs, endTs,
       durationMin: (startTs != null && endTs != null) ? Math.max(0, Math.round((endTs - startTs) / 60000)) : null,
@@ -179,7 +203,8 @@ async function buildTranscripts(team, since) {
     else if (o.hasServiceAppt) { o.outcome = "Service Booked"; o.cls = "committed"; }
     else if (o.hasLead) { o.outcome = "Lead Captured"; o.cls = "warm"; }
     else if (o.outcome === "Test Drive Booked") { o.outcome = "Engaged"; o.cls = "neutral"; } // demote false heuristic
-    delete o._lead;
+    o.topic = classifyIntent(o._userText, o._vdp, o.agent, o.hasTestDrive, o.hasServiceAppt);
+    delete o._lead; delete o._userText; delete o._vdp;
   }
   return out;
 }
