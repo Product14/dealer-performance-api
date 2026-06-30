@@ -42,21 +42,42 @@ function classify(bot) {
 }
 // What the shopper was enquiring about — derived from the real conversation
 // (shopper messages + vehicle pages opened + agent type + actual bookings).
+// Granular taxonomy: Sales-side and Service-side topics surface separately
+// under the All/Sales/Service scope tabs.
 const INTENT_COLORS = {
-  "Test Drive": "#7c3aed", "Service & Maintenance": "#0891b2", "Financing & Payments": "#f59e0b",
-  "Trade-In": "#16a34a", "Vehicle Availability & Pricing": "#2563eb", "Hours & Location": "#6366f1",
-  "General Inquiry": "#94a3b8",
+  // Sales
+  "Vehicle Availability": "#2563eb", "Pricing & Quotes": "#f59e0b", "Financing & Lease": "#d97706",
+  "Trade-In": "#16a34a", "Test Drive": "#7c3aed", "Features & Specs": "#6366f1", "Offers & Promotions": "#db2777",
+  // Service
+  "Service Appointment": "#0891b2", "Maintenance": "#0d9488", "Repairs": "#dc2626",
+  "Recall": "#b45309", "Parts & Accessories": "#0e7490", "Service Enquiry": "#14b8a6",
+  // General
+  "Hours & Location": "#64748b", "General Inquiry": "#94a3b8",
 };
 function classifyIntent(userText, vdpOpened, agent, hasTestDrive, hasServiceAppt) {
   const t = String(userText || "").toLowerCase();
+  // Decisive signals from real bookings.
   if (hasTestDrive) return "Test Drive";
-  if (hasServiceAppt || agent === "service") return "Service & Maintenance";
-  if (/\b(oil|brakes?|tires?|recall|repair|maintenance|service appointment|servicing)\b/.test(t)) return "Service & Maintenance";
+  if (hasServiceAppt) return "Service Appointment";
+  // Topic keywords that apply regardless of which agent handled the chat.
+  if (/\b(recall)\b/.test(t)) return "Recall";
   if (/\b(trade[- ]?in|trade in|appraise|appraisal|value my|what.s my .* worth|trade my)\b/.test(t)) return "Trade-In";
-  if (/\b(financ|payment|lease|leasing|apr|credit|monthly|down payment|loan|qualify|interest rate)\b/.test(t)) return "Financing & Payments";
+  if (/\b(financ|lease|leasing|apr|credit score|monthly payment|down payment|loan|pre[- ]?qualif|interest rate)\b/.test(t)) return "Financing & Lease";
+  // Service-side topics.
+  const serviceCtx = agent === "service";
+  if (/\b(check engine|won.t start|warning light|noise|grinding|leak|overheat|transmission|ac |a\/c|air condition|heating|won.t)\b/.test(t)) return "Repairs";
+  if (/\b(oil change|tire rotation|rotate|brakes?|tires?|fluid|battery|inspection|maintenance|tune[- ]?up|wiper|filter)\b/.test(t)) return "Maintenance";
+  if (/\b(part|parts|accessor|floor mat|cargo|spare)\b/.test(t)) return "Parts & Accessories";
+  if (serviceCtx && /\b(schedule|appointment|book|drop ?off|service)\b/.test(t)) return "Service Appointment";
+  // Sales-side topics.
   if (/\b(test drive)\b/.test(t)) return "Test Drive";
+  if (/\b(deal|special|offer|incentive|rebate|discount|promotion|coupon)\b/.test(t)) return "Offers & Promotions";
+  if (/\b(feature|spec|specs|mpg|mileage|color|colour|trim|engine|awd|seats?|towing|compare|vs\b|difference between|warranty)\b/.test(t)) return "Features & Specs";
+  if (/\b(price|pricing|cost|how much|msrp|quote|out the door|otd|payment)\b/.test(t)) return "Pricing & Quotes";
   if (/\b(hours|are you open|location|address|directions|where are you|how late)\b/.test(t)) return "Hours & Location";
-  if (vdpOpened || /\b(available|in stock|inventory|do you have|looking for|interested in|price|pricing|cost|msrp|how much|color|mileage)\b/.test(t)) return "Vehicle Availability & Pricing";
+  if (vdpOpened || /\b(available|availability|in stock|inventory|do you have|looking for|interested in|still have|any .* in)\b/.test(t)) return "Vehicle Availability";
+  // Context fallbacks.
+  if (serviceCtx) return "Service Enquiry";
   return "General Inquiry";
 }
 function fmtPhone(p) { const d = String(p || ""); const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(d); return m ? `+1 ${m[1]}-${m[2]}-${m[3]}` : d; }
