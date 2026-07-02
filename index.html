@@ -225,6 +225,8 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 .scopeseg button.active{background:var(--accent);color:#fff;box-shadow:0 4px 12px var(--accent-soft);}
 .scopeseg button[data-s="sales"].active{background:#522EBF;}
 .scopeseg button[data-s="service"].active{background:#0891B2;box-shadow:0 4px 12px #0891B233;}
+.scopeseg .sdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+.scopeseg button.active .sdot{background:#fff!important;}
 .scopehint{font-size:12.5px;color:var(--muted);font-weight:500;}
 @media(max-width:560px){.scopeseg button{padding:8px 18px;font-size:13px;}}
 .convbanner{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;}
@@ -271,8 +273,8 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
   <div class="scopebar">
     <div class="scopeseg" id="scopeSeg">
       <button data-s="all" class="active">All</button>
-      <button data-s="sales">Sales</button>
-      <button data-s="service">Service</button>
+      <button data-s="sales"><span class="sdot" style="background:#522EBF"></span>Sales</button>
+      <button data-s="service"><span class="sdot" style="background:#0891B2"></span>Service</button>
     </div>
     <span class="scopehint" id="scopeHint"></span>
   </div>
