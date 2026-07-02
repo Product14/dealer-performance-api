@@ -7,10 +7,10 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root{
-  --hh:60px;--navy:#1A1A1A;--navy2:#3500B8;--bg:#F4F5F8;--card:#FFFFFF;
-  --bdr:#E5E7EB;--bdr-strong:#D1D5DB;--txt:#1A1A1A;--muted:#6B7280;--faint:#9CA3AF;--r:8px;
-  --svc:#4600F2;--accent:#4600F2;--accent-soft:#4600F214;
-  --red:#D13313;--amber:#F59E0B;--green:#027A48;--purple:#7C3AED;--cyan:#0891B2;--indigo:#6366F1;
+  --hh:60px;--navy:#262C42;--navy2:#3E1F9E;--bg:#F4F5F8;--card:#FFFFFF;
+  --bdr:#E1E3E9;--bdr-strong:#C4C2D1;--txt:#262C42;--muted:#86839A;--faint:#AAA8BD;--r:8px;
+  --svc:#522EBF;--accent:#522EBF;--accent-soft:#522EBF14;
+  --red:#D13313;--amber:#F59E0B;--green:#008743;--purple:#7C3AED;--cyan:#0891B2;--indigo:#6366F1;
   --shadow:0 1px 2px rgba(0,0,0,.06);
 }
 *{box-sizing:border-box;}
@@ -82,7 +82,7 @@ select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px rgba(147,197
 .ksplit .sp{font-size:11px;font-weight:600;color:var(--muted);padding:3px 9px;border-radius:999px;border:1px solid var(--bdr);display:inline-flex;gap:5px;align-items:center;background:#fff;}
 .ksplit .sp b{font-weight:800;color:var(--txt);font-family:'Inter',sans-serif;}
 .ksplit .sp.sales{border-color:#cdbcff;background:#f3efff;}
-.ksplit .sp.sales b{color:#4600F2;}
+.ksplit .sp.sales b{color:#522EBF;}
 .ksplit .sp.service{border-color:#bce3ec;background:#eefafd;}
 .ksplit .sp.service b{color:#0891B2;}
 .kbar{height:6px;border-radius:5px;background:#eef2f7;margin-top:12px;overflow:hidden;}
@@ -223,7 +223,7 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 .scopeseg button{border:none;background:transparent;font-family:inherit;font-size:14px;font-weight:700;color:var(--muted);padding:9px 28px;border-radius:9999px;cursor:pointer;transition:all .15s;letter-spacing:.02em;}
 .scopeseg button:hover{color:var(--txt);}
 .scopeseg button.active{background:var(--accent);color:#fff;box-shadow:0 4px 12px var(--accent-soft);}
-.scopeseg button[data-s="sales"].active{background:#4600F2;}
+.scopeseg button[data-s="sales"].active{background:#522EBF;}
 .scopeseg button[data-s="service"].active{background:#0891B2;box-shadow:0 4px 12px #0891B233;}
 .scopehint{font-size:12.5px;color:var(--muted);font-weight:500;}
 @media(max-width:560px){.scopeseg button{padding:8px 18px;font-size:13px;}}
@@ -234,7 +234,7 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 .agtag{display:inline-block;padding:1px 8px;border-radius:9999px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
 .agtag.sales{background:var(--accent-soft);color:var(--accent);}
 .agtag.service{background:#0891B214;color:var(--cyan);}
-.chip.lead{background:var(--color-success-soft,#027A481A);color:var(--green);padding:1px 8px;border-radius:9999px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+.chip.lead{background:var(--color-success-soft,#0087431A);color:var(--green);padding:1px 8px;border-radius:9999px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
 .chip.topic{background:#F4F5F8;color:var(--muted);border:1px solid var(--bdr);padding:1px 8px;border-radius:9999px;font-size:10.5px;font-weight:600;letter-spacing:.01em;}
 .intent-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--bdr);}
 .intent-row:last-child{border-bottom:0;}
@@ -344,11 +344,11 @@ body{background:radial-gradient(1200px 600px at 80% -10%,#e9effb 0%,transparent 
 </div>
 
 <script>
-const C={accent:'#4600F2',svc:'#4600F2',green:'#027A48',amber:'#F59E0B',purple:'#7C3AED',cyan:'#0891B2',red:'#D13313',indigo:'#6366F1',muted:'#6B7280',faint:'#9CA3AF',border:'#E5E7EB',navy:'#1A1A1A',blueLight:'#C7B7FB',blueMid:'#7C5CF6',txt:'#1A1A1A'};
+const C={accent:'#522EBF',svc:'#522EBF',green:'#008743',amber:'#F59E0B',purple:'#7C3AED',cyan:'#0891B2',red:'#D13313',indigo:'#6366F1',muted:'#86839A',faint:'#AAA8BD',border:'#E1E3E9',navy:'#262C42',blueLight:'#C7B7FB',blueMid:'#6843CC',txt:'#262C42'};
 const fmt=n=>{n=+n||0;return n>=1000?Math.round(n).toLocaleString():(Number.isInteger(n)?String(n):n.toFixed(1));};
 const SRC_COLORS={'Website':C.accent,'Google Search':C.green,'Facebook':C.indigo,'Instagram':C.purple,'Referral':C.amber,'Walk-in':C.cyan,'Other':C.faint};
 const INTENT_COLORS={'Vehicle Availability':'#2563EB','Pricing & Quotes':'#F59E0B','Financing & Lease':'#D97706','Trade-In':'#16A34A','Test Drive':'#7C3AED','Features & Specs':'#6366F1','Offers & Promotions':'#DB2777','Service Appointment':'#0891B2','Maintenance':'#0D9488','Repairs':'#DC2626','Recall':'#B45309','Parts & Accessories':'#0E7490','Service Enquiry':'#14B8A6','Hours & Location':'#64748B','General Inquiry':'#94A3B8'};
-const OUTCOME_COLORS={'Test Drive Booked':'#16A34A','Service Booked':'#0891B2','Lead Captured':'#4600F2','Callback Requested':'#F59E0B','Engaged':'#94A3B8'};
+const OUTCOME_COLORS={'Test Drive Booked':'#16A34A','Service Booked':'#0891B2','Lead Captured':'#522EBF','Callback Requested':'#F59E0B','Engaged':'#94A3B8'};
 
 /* ============================================================
    LIVE DATA LAYER  (Metabase signed-embedding proxy)
